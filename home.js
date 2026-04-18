@@ -214,6 +214,78 @@ function doUpgrade(id) {
   renderUpgrade();
 }
 
+// ── Base Upgrade ──────────────────────────────────────
+
+// 拠点強化のパラメータ定義
+var BASE_UPGRADES = {
+  regen:   { n:'ゴールド回復', e:'⏳', max:10, base:5, step:0.5 },
+  maxGold: { n:'ゴールド上限', e:'💰', max:10, base:100, step:20 },
+  hp:      { n:'拠点HP',       e:'🏯', max:10, base:1000, step:200 },
+  atk:     { n:'拠点攻撃力',   e:'🏹', max:10, base:20, step:8 }
+};
+
+// 画面を開く処理
+function openBaseUpgrade() {
+  renderBaseUpgrade();
+  showScreen('base-up');
+}
+
+// 拠点強化画面の描画
+function renderBaseUpgrade() {
+  var el = document.getElementById('base-upgrade-list');
+  var gel = document.getElementById('base-upgrade-gold');
+  if (!el) return;
+  el.innerHTML = '';
+  if (gel) gel.textContent = '💰 ' + SAVE.gold + ' G';
+
+  Object.keys(BASE_UPGRADES).forEach(function(key) {
+    var d = BASE_UPGRADES[key];
+    var lv = SAVE.baseLevels[key] || 0;
+    
+    // コスト計算：(現在のレベル + 1) × 100G （拠点は少し高めに設定）
+    var cost = (lv + 1) * 100; 
+    var maxed = lv >= d.max;
+    var canBuy = !maxed && SAVE.gold >= cost;
+
+    var currentVal = d.base + lv * d.step;
+    var nextVal = d.base + (lv + 1) * d.step;
+
+    var row = document.createElement('div');
+    row.className = 'up-row';
+    row.innerHTML =
+      '<div class="up-ico">' + d.e + '</div>' +
+      '<div class="up-mid">' +
+        '<div class="up-nm">' + d.n +
+          ' <span class="up-lv' + (maxed ? ' up-maxed-lbl' : '') + '">Lv.' + lv + '/' + d.max + '</span>' +
+        '</div>' +
+        '<div class="up-stat">' +
+          '現在 <b>' + currentVal + '</b>' + (maxed ? '' : ' → <b>' + nextVal + '</b>') +
+        '</div>' +
+        '<div class="up-track"><div class="up-prog" style="width:' + (lv * (100/d.max)) + '%"></div></div>' +
+      '</div>' +
+      '<button class="up-btn' +
+        (maxed ? ' up-btn-max' : canBuy ? ' up-btn-ok' : '') + '"' +
+        (maxed || !canBuy ? ' disabled' : '') +
+        '>' + (maxed ? 'MAX' : 'G' + cost) + '</button>';
+
+    // ボタンクリック時のイベント
+    row.querySelector('.up-btn').addEventListener('click', function() { doBaseUpgrade(key, cost, d.max); });
+    el.appendChild(row);
+  });
+}
+
+// 強化実行処理
+function doBaseUpgrade(key, cost, max) {
+  var lv = SAVE.baseLevels[key] || 0;
+  if (lv >= max) return;
+  if (SAVE.gold < cost) { flashMsg('ゴールドが足りません'); return; }
+  
+  SAVE.gold -= cost;
+  SAVE.baseLevels[key] = lv + 1;
+  persistSave();        // 保存
+  renderBaseUpgrade();  // 画面の再描画
+}
+
 // ── Stage Selection ───────────────────────────────────
 function openStage() {
   renderStages();
