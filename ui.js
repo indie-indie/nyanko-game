@@ -24,7 +24,13 @@ function buildDeck() {
     el.setAttribute('data-uid', id);
 
     var fs = Math.min(Math.round(24 * d.size), 30);
-    var typeTag = d.type === 'air' ? '✈ 飛行' : '⚔ 地上';
+    var typeTag = '';
+    if (d.type === 'air') typeTag = '✈ 飛行';
+    else if (d.type === 'spell') typeTag = '✨ 魔法';
+    else typeTag = '⚔ 地上';
+    
+    // スペルカードには特別なクラスを付与する（CSSで色を変えられるように）
+    if (d.type === 'spell') el.classList.add('card-spell');
 
     el.innerHTML =
       '<div class="cico" style="font-size:' + fs + 'px">' + d.e + '</div>' +

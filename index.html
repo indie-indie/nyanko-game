@@ -324,7 +324,14 @@ button, .card, .home-btn {
 #deck-toggle { width: 100%; margin-top: 7px; background: #1e293b; color: #94a3b8; border: .5px solid #334155; border-radius: 6px; padding: 6px; font-size: 11px; cursor: pointer; font-family: inherit; }
 #deck-toggle:hover { background: #334155; color: #f1f5f9; }
 #phint { margin-top: 7px; text-align: center; font-size: 10px; color: #f59e0b; min-height: 13px; font-style: italic; }
+.card-spell {
+  background: linear-gradient(135deg, #1e0a2e 0%, #3d105e 100%) !important;
+  border: 1px solid #a855f7 !important;
+}
 
+.card-spell .ctyp {
+  color: #d8b4fe;
+}
 /* Win/Lose overlay */
 #ov { position: absolute; inset: 0; background: rgba(4,7,18,.93); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; z-index: 50; }
 #oico { font-size: 52px; line-height: 1; }
@@ -458,6 +465,7 @@ canvas, .card, button {
     <div id="intro">
       <p>ユニットを選択 → キャンバスをクリックして好きなX位置に配置 ／ 敵拠点🏰を破壊すれば勝利</p>
     </div>
+    
     <!-- Win/Lose overlay -->
     <div id="ov">
       <div id="oico">🏆</div>

@@ -93,6 +93,21 @@ var PLAYER_UNITS = {
     hp:220, dmg:78, spd:34,  rng:80, ar:1.6,
     type:'air', targets:'both',
     cd:4.0, size:1.3, area:30, rew:3
+  },
+
+//スペル
+
+  fireball: {
+    n: '火炎弾', e: '🔥', cost: 30,
+    type: 'spell', effect: 'damage', dmg: 120, area: 70, cd: 8
+  },
+  heal_rain: {
+    n: '癒しの雨', e: '✨', cost: 25,
+    type: 'spell', effect: 'heal', dmg: 60, area: 90, cd: 12
+  },
+  freeze: {
+    n: 'フリーズ', e: '❄️', cost: 20,
+    type: 'spell', effect: 'stun', duration: 3.0, area: 60, cd: 15
   }
   };
 
