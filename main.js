@@ -91,7 +91,31 @@ function canvasX(clientX) {
   var r = canvas.getBoundingClientRect();
   return (clientX - r.left) * (W / r.width);
 }
-function handleCanvasClick(e)  { placeUnit(canvasX(e.clientX)); }
+// main.js の handleCanvasClick 関数を修正
+function handleCanvasClick(e) {
+  if (!g || !g.on || !g.selectedUnit) return;
+
+  var rect = canvas.getBoundingClientRect();
+  var scaleX = canvas.width / rect.width;
+  
+  // スマホのタッチとマウス両方に対応した座標取得
+  var clientX = e.clientX;
+  if (e.changedTouches && e.changedTouches.length > 0) {
+    clientX = e.changedTouches[0].clientX;
+  }
+
+  var x = (clientX - rect.left) * scaleX;
+
+  // ゴールド消費とユニット生成
+  var d = PLAYER_UNITS[g.selectedUnit];
+  if (g.gold >= d.cost) {
+    g.gold -= d.cost;
+    // ユニットを生成して配列に追加する処理...
+    spawnUnit(g.selectedUnit, x); 
+    g.selectedUnit = null; // 配置後に選択解除
+    document.getElementById('phint').textContent = '';
+  }
+}
 function handleMouseMove(e)    { mouseX = canvasX(e.clientX); }
 function handleTouchEnd(e)     { e.preventDefault(); placeUnit(canvasX(e.changedTouches[0].clientX)); }
 function handleTouchMove(e)    { e.preventDefault(); mouseX = canvasX(e.touches[0].clientX); }

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>ニャンコRTS</title>
@@ -339,6 +339,11 @@ button, .card, .home-btn {
 
 #intro { padding: 8px 12px; background: #060b1a; border-top: .5px solid #1a2a4a; width: 390px; }
 #intro p { font-size: 9.5px; color: #334155; line-height: 1.6; text-align: center; }
+
+canvas, .card, button {
+  touch-action: manipulation; /* ダブルタップズームを禁止して反応を速くする */
+  -webkit-tap-highlight-color: transparent; /* タップ時の青い枠を消す */
+}
 </style>
 </head>
 <body>
