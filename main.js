@@ -104,7 +104,8 @@ function handleCanvasClick(e) {
     clientX = e.changedTouches[0].clientX;
   }
 
-  var x = (clientX - rect.left) * scaleX;
+  var x = (clientX - rect.left) * scaleX; 
+  spawnUnit(g.selectedUnit, x);
 
   // ゴールド消費とユニット生成
   var d = PLAYER_UNITS[g.selectedUnit];
