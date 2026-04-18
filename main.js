@@ -93,27 +93,41 @@ function canvasX(clientX) {
 }
 // main.js の handleCanvasClick 関数を修正
 function handleCanvasClick(e) {
+  // 1. ゲーム中か、ユニットが選択されているかチェック
   if (!g || !g.on || !g.selectedUnit) return;
 
+  // 2. タップ/クリック位置をキャンバス座標に変換
   var rect = canvas.getBoundingClientRect();
   var scaleX = canvas.width / rect.width;
-  
-  // スマホのタッチとマウス両方に対応した座標取得
-  var clientX = e.clientX;
-  if (e.changedTouches && e.changedTouches.length > 0) {
-    clientX = e.changedTouches[0].clientX;
-  }
+  var clientX = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX);
+  var x = (clientX - rect.left) * scaleX;
 
-  var x = (clientX - rect.left) * scaleX; 
-  spawnUnit(g.selectedUnit, x);
-
-  // ゴールド消費とユニット生成
   var d = PLAYER_UNITS[g.selectedUnit];
+  
+  // 3. ゴールドが足りるかチェック
   if (g.gold >= d.cost) {
-    g.gold -= d.cost;
-    // ユニットを生成して配列に追加する処理...
-    spawnUnit(g.selectedUnit, x); 
-    g.selectedUnit = null; // 配置後に選択解除
+    g.gold -= d.cost; // ゴールド消費
+    
+// 4. ユニットデータを mkUnit で作成して g.units に追加
+    // 強化倍率を取得してステータスに反映させる
+    var mult = (typeof getMultiplier === 'function') ? getMultiplier(g.selectedUnit) : 1.0;
+    var scaledD = {
+      n:d.n, e:d.e, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),
+      spd:d.spd, rng:d.rng, ar:d.ar, type:d.type, targets:d.targets,
+      size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1, cd:d.cd
+    };
+
+    // 出現位置を少し上下に散らす
+    var spawnY = PSY + (Math.random() * 20 - 10); 
+    
+    // unit.js の mkUnit 関数を使って生成
+    var newUnit = mkUnit(g.selectedUnit, 'player', x, spawnY, scaledD);
+
+    g.units.push(newUnit); // 管理配列に加える（これで画面に出る）
+
+    // 5. 後片付け
+    g.unitCDs[g.selectedUnit] = d.cd || 1; // クールダウン開始
+    g.selectedUnit = null;
     document.getElementById('phint').textContent = '';
   }
 }
