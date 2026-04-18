@@ -1,0 +1,22 @@
+{
+  "short_name": "ニャンコRTS",
+  "name": "ニャンコRTS ゲームアプリ",
+  "icons": [
+    {
+      "src": "https://placehold.jp/192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://placehold.jp/512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "index.html",
+  "background_color": "#0a0f2e",
+  "display": "standalone",
+  "scope": "./",
+  "theme_color": "#0a0f2e",
+  "description": "にゃんこ×クラロワ風の自作ゲーム"
+}
