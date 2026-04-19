@@ -49,6 +49,12 @@ var ENEMY_UNITS = {
       type:'ground', targets:'both',
       size:1.0,area:30, rew:25
     }, 
+    charger: {
+      n:'チャージナイト', e:'🐂',
+      hp:180, dmg:48, spd:95, rng:45, ar:1.8,
+      type:'ground', targets:'ground',
+      size:1.2, rew:30,
+    },
   garpy: {
     n:'ガーピー', e:'🦅',
     hp:55,  dmg:18, spd:85,  rng:55,  ar:1.0,

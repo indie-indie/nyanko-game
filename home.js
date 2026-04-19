@@ -1,45 +1,56 @@
 // home.js — Screen manager, persistent save, deck builder, upgrade, stage select
 
+// ── 初期アンロック済みユニット ──────────────────────────
+var INITIAL_UNLOCKED = ['nyanko', 'wanko', 'bolt', 'soldier', 'archer'];
+
 // ── Persistent Save ───────────────────────────────────
-// --- home.js の冒頭 ---
-var SAVE = { 
-  gold: 0, 
-  levels: {}, 
-  baseLevels: {regen:0, maxGold:0, hp:0, atk:0}, // ここに初期値を追加
-  deck: null 
+var SAVE = {
+  gold: 0,
+  levels: {},
+  baseLevels: { regen:0, maxGold:0, hp:0, atk:0 },
+  deck: null,
+  unlocked: []
 };
 
 function loadSave() {
   try {
     SAVE.gold       = parseInt(localStorage.getItem('nrts_gold') || '0', 10);
-    SAVE.levels     = JSON.parse(localStorage.getItem('nrts_levels') || '{}');
-    
-    // 拠点強化データを読み込む（データがない場合は空のオブジェクト {} を入れる）
-    var savedBase = JSON.parse(localStorage.getItem('nrts_base_levels') || '{}');
-    // 既存のデータにマージして、項目の欠落を防ぐ
-    SAVE.baseLevels = Object.assign({regen:0, maxGold:0, hp:0, atk:0}, savedBase);
-    
-    SAVE.deck       = JSON.parse(localStorage.getItem('nrts_deck') || 'null');
+    SAVE.levels     = JSON.parse(localStorage.getItem('nrts_levels')      || '{}');
+    var savedBase   = JSON.parse(localStorage.getItem('nrts_base_levels') || '{}');
+    SAVE.baseLevels = Object.assign({ regen:0, maxGold:0, hp:0, atk:0 }, savedBase);
+    SAVE.deck       = JSON.parse(localStorage.getItem('nrts_deck')        || 'null');
+    var savedUnlocked = JSON.parse(localStorage.getItem('nrts_unlocked')  || 'null');
+    SAVE.unlocked   = Array.isArray(savedUnlocked) ? savedUnlocked : INITIAL_UNLOCKED.slice();
   } catch(e) {
-    console.error("Save load error:", e);
-    // エラー時も最低限の構造を維持する
-    SAVE = { gold: 0, levels: {}, baseLevels: {regen:0, maxGold:0, hp:0, atk:0}, deck: null };
+    console.error('Save load error:', e);
+    SAVE = { gold:0, levels:{}, baseLevels:{ regen:0, maxGold:0, hp:0, atk:0 },
+             deck:null, unlocked: INITIAL_UNLOCKED.slice() };
   }
-  
-  // デッキの初期化
-  var all = Object.keys(PLAYER_UNITS);
+
+  // アンロック済みユニットのみデッキに含める
   if (!Array.isArray(SAVE.deck) || SAVE.deck.length === 0) {
-    SAVE.deck = all.slice(0, Math.min(10, all.length));
+    SAVE.deck = INITIAL_UNLOCKED.slice();
   }
-  PLAYER_DECK = SAVE.deck.slice();
-  selectedStage = STAGES[0];
+  SAVE.deck = SAVE.deck.filter(function(id) {
+    return SAVE.unlocked.indexOf(id) >= 0 && PLAYER_UNITS[id];
+  });
+  if (SAVE.deck.length === 0) SAVE.deck = INITIAL_UNLOCKED.slice();
+
+  PLAYER_DECK    = SAVE.deck.slice();
+  selectedStage  = STAGES[0];
 }
 
 function persistSave() {
-  localStorage.setItem('nrts_gold',   String(SAVE.gold));
-  localStorage.setItem('nrts_levels', JSON.stringify(SAVE.levels));
+  localStorage.setItem('nrts_gold',        String(SAVE.gold));
+  localStorage.setItem('nrts_levels',      JSON.stringify(SAVE.levels));
   localStorage.setItem('nrts_base_levels', JSON.stringify(SAVE.baseLevels));
-  localStorage.setItem('nrts_deck',   JSON.stringify(SAVE.deck));
+  localStorage.setItem('nrts_deck',        JSON.stringify(SAVE.deck));
+  localStorage.setItem('nrts_unlocked',    JSON.stringify(SAVE.unlocked));
+}
+
+// アンロック済みかどうか判定
+function isUnlocked(id) {
+  return SAVE.unlocked.indexOf(id) >= 0;
 }
 
 // 強化倍率: Lv0=1.0x … Lv10=2.0x
@@ -54,13 +65,14 @@ function getUpgradeCost(id) {
 // ── Stage Definitions ────────────────────────────────
 var STAGES = [
   { id:1, name:'ステージ 1', sub:'草原の戦い', icon:'🌿',
-    enemyMult:1.0, baseReward:150 },
-  { id:2, name:'ステージ 2', sub:'砂漠の砦',   icon:'🏜️',
+    enemyMult:1, baseReward:150 },
+  { id:2, name:'ステージ 2', sub:'砂漠の砦', icon:'🏜️',
     enemyMult:1.4, baseReward:280 },
-  { id:3, name:'ステージ 3', sub:'魔王の城',   icon:'🏰',
+  { id:3, name:'ステージ 3', sub:'魔王の城', icon:'🏰',
     enemyMult:1.8, baseReward:450 },
+  { id:4, name:'ステージ 4', sub:'絶望', icon:'⭐',
+    enemyMult:2, baseReward:600 }
 ];
-
 // ── Screen Manager ────────────────────────────────────
 var SCREEN_IDS = ['home','deck','upgrade','stage','battle','base-up'];
 
@@ -84,9 +96,6 @@ function refreshHomeGold() {
 }
 
 function goHome() {
-  if (typeof cancelAnimationFrame !== 'undefined' && typeof raf_ !== 'undefined') {
-    // keep RAF running but just switch screen
-  }
   showScreen('home');
   refreshHomeGold();
 }
@@ -107,13 +116,22 @@ function renderDeckBuilder() {
   el.innerHTML = '';
   if (cnt) cnt.textContent = deckSel.length + ' / 10';
 
+  // アンロック済みユニットのみ表示
   Object.keys(PLAYER_UNITS).forEach(function(id) {
+    if (!isUnlocked(id)) return;
     var d   = PLAYER_UNITS[id];
     var sel = deckSel.indexOf(id) >= 0;
     var lv  = SAVE.levels[id] || 0;
     var m   = getMultiplier(id);
     var fs  = Math.min(Math.round(22 * (d.size || 1)), 30);
-    var typeTag = d.type === 'air' ? '✈飛行' : '⚔地上';
+
+    var typeTag = d.type === 'spell' ? '✨スペル'
+                : d.type === 'air'   ? '✈飛行' : '⚔地上';
+    var zoneTag = (d.type === 'spell' || d.zone === 'all') ? '全域' : '自陣';
+
+    var statHtml = d.type === 'spell'
+      ? 'ATK:' + Math.round(d.dmg * m) + ' 範囲:' + d.area + ' 💰' + d.cost
+      : 'HP:'  + Math.round(d.hp  * m) + ' ATK:' + Math.round(d.dmg * m) + ' 💰' + d.cost;
 
     var card = document.createElement('div');
     card.className = 'dbcard' + (sel ? ' dbsel' : '');
@@ -123,13 +141,10 @@ function renderDeckBuilder() {
       '<div class="db-body">' +
         '<div class="db-nm">' + d.n +
           ' <span class="db-type">' + typeTag + '</span>' +
+          ' <span class="db-type" style="color:#a78bfa;background:#1a0a2e">' + zoneTag + '</span>' +
           ' <span class="db-lv">Lv.' + lv + '</span>' +
         '</div>' +
-        '<div class="db-st">' +
-          'HP:' + Math.round(d.hp * m) +
-          ' ATK:' + Math.round(d.dmg * m) +
-          ' 💰' + d.cost +
-        '</div>' +
+        '<div class="db-st">' + statHtml + '</div>' +
       '</div>' +
       '<span class="db-chk" style="visibility:' + (sel ? 'visible' : 'hidden') + '">✓</span>';
 
@@ -151,14 +166,14 @@ function toggleDeckCard(id) {
 
 function saveDeck() {
   if (deckSel.length < 1) { flashMsg('最低1体必要です'); return; }
-  SAVE.deck  = deckSel.slice();
+  SAVE.deck   = deckSel.slice();
   PLAYER_DECK = SAVE.deck.slice();
   persistSave();
   flashMsg('デッキを保存しました！');
   setTimeout(function() { showScreen('home'); refreshHomeGold(); }, 700);
 }
 
-// ── Unit Upgrade ──────────────────────────────────────
+// ── Unit Upgrade & Unlock ─────────────────────────────
 function openUpgrade() {
   renderUpgrade();
   showScreen('upgrade');
@@ -172,33 +187,69 @@ function renderUpgrade() {
   if (gel) gel.textContent = '💰 ' + SAVE.gold + ' G';
 
   Object.keys(PLAYER_UNITS).forEach(function(id) {
-    var d    = PLAYER_UNITS[id];
-    var lv   = SAVE.levels[id] || 0;
-    var m    = getMultiplier(id);
-    var cost = getUpgradeCost(id);
-    var maxed  = lv >= 10;
-    var canBuy = !maxed && SAVE.gold >= cost;
+    var d       = PLAYER_UNITS[id];
+    var unlocked = isUnlocked(id);
+    var lv      = SAVE.levels[id] || 0;
+    var m       = getMultiplier(id);
+    var isSpell = d.type === 'spell';
 
     var row = document.createElement('div');
     row.className = 'up-row';
-    row.innerHTML =
-      '<div class="up-ico">' + d.e + '</div>' +
-      '<div class="up-mid">' +
-        '<div class="up-nm">' + d.n +
-          ' <span class="up-lv' + (maxed ? ' up-maxed-lbl' : '') + '">Lv.' + lv + '/10</span>' +
-        '</div>' +
-        '<div class="up-stat">' +
-          'HP <b>' + d.hp + '</b>→<b>' + Math.round(d.hp * m) + '</b>　' +
-          'ATK <b>' + d.dmg + '</b>→<b>' + Math.round(d.dmg * m) + '</b>' +
-        '</div>' +
-        '<div class="up-track"><div class="up-prog" style="width:' + (lv * 10) + '%"></div></div>' +
-      '</div>' +
-      '<button class="up-btn' +
-        (maxed ? ' up-btn-max' : canBuy ? ' up-btn-ok' : '') + '"' +
-        (maxed || !canBuy ? ' disabled' : '') +
-        '>' + (maxed ? 'MAX' : 'G' + cost) + '</button>';
 
-    row.querySelector('.up-btn').addEventListener('click', function() { doUpgrade(id); });
+    if (!unlocked) {
+      // ─── 未解放：アンロックボタン ───
+      var ucost    = d.unlockCost || 0;
+      var canUnlock = SAVE.gold >= ucost;
+      var statHtml = isSpell
+        ? 'ATK:' + d.dmg + '　範囲:' + d.area
+        : 'HP:' + d.hp + '　ATK:' + d.dmg;
+
+      row.innerHTML =
+        '<div class="up-ico">' + d.e + '</div>' +
+        '<div class="up-mid">' +
+          '<div class="up-nm">' + d.n +
+            ' <span class="up-lv" style="color:#ef4444">🔒 未解放</span>' +
+          '</div>' +
+          '<div class="up-stat">' + statHtml + '</div>' +
+        '</div>' +
+        '<button class="up-btn' + (canUnlock ? ' up-btn-ok' : '') + '"' +
+          (canUnlock ? '' : ' disabled') + '>解放 G' + ucost + '</button>';
+
+      row.querySelector('.up-btn').addEventListener('click', function() { doUnlock(id); });
+
+    } else {
+      // ─── 解放済み：強化ボタン ───
+      var cost  = getUpgradeCost(id);
+      var maxed = lv >= 10;
+      var canBuy = !maxed && SAVE.gold >= cost;
+
+      // スペルはHP表記を省略し、ATK（ダメージ）のみ表示
+      var statHtml;
+      if (isSpell) {
+        statHtml = 'ATK <b>' + d.dmg + '</b>→<b>' + Math.round(d.dmg * m) + '</b>';
+      } else {
+        statHtml =
+          'HP <b>' + d.hp + '</b>→<b>' + Math.round(d.hp * m) + '</b>　' +
+          'ATK <b>' + d.dmg + '</b>→<b>' + Math.round(d.dmg * m) + '</b>';
+      }
+
+      row.innerHTML =
+        '<div class="up-ico">' + d.e + '</div>' +
+        '<div class="up-mid">' +
+          '<div class="up-nm">' + d.n +
+            ' <span class="up-lv' + (maxed ? ' up-maxed-lbl' : '') + '">Lv.' + lv + '/10</span>' +
+          '</div>' +
+          '<div class="up-stat">' + statHtml + '</div>' +
+          '<div class="up-track"><div class="up-prog" style="width:' + (lv * 10) + '%"></div></div>' +
+        '</div>' +
+        '<button class="up-btn' +
+          (maxed ? ' up-btn-max' : canBuy ? ' up-btn-ok' : '') + '"' +
+          (maxed || !canBuy ? ' disabled' : '') +
+          '>' + (maxed ? 'MAX' : 'G' + cost) + '</button>';
+
+      row.querySelector('.up-btn').addEventListener('click', function() { doUpgrade(id); });
+    }
+
     el.appendChild(row);
   });
 }
@@ -214,40 +265,45 @@ function doUpgrade(id) {
   renderUpgrade();
 }
 
-// ── Base Upgrade ──────────────────────────────────────
+function doUnlock(id) {
+  var d = PLAYER_UNITS[id];
+  if (!d || isUnlocked(id)) return;
+  var cost = d.unlockCost || 0;
+  if (SAVE.gold < cost) { flashMsg('ゴールドが足りません'); return; }
+  SAVE.gold -= cost;
+  SAVE.unlocked.push(id);
+  persistSave();
+  renderUpgrade();
+  flashMsg(d.n + ' をアンロックしました！');
+}
 
-// 拠点強化のパラメータ定義
+// ── Base Upgrade ──────────────────────────────────────
 var BASE_UPGRADES = {
-  regen:   { n:'ゴールド回復', e:'⏳', max:10, base:5, step:0.5 },
-  maxGold: { n:'ゴールド上限', e:'💰', max:10, base:100, step:20 },
+  regen:   { n:'ゴールド回復', e:'⏳', max:10, base:5,    step:0.5 },
+  maxGold: { n:'ゴールド上限', e:'💰', max:10, base:100,  step:20  },
   hp:      { n:'拠点HP',       e:'🏯', max:10, base:1000, step:200 },
-  atk:     { n:'拠点攻撃力',   e:'🏹', max:10, base:20, step:8 }
+  atk:     { n:'拠点攻撃力',   e:'🏹', max:10, base:20,   step:8   }
 };
 
-// 画面を開く処理
 function openBaseUpgrade() {
   renderBaseUpgrade();
   showScreen('base-up');
 }
 
-// 拠点強化画面の描画
 function renderBaseUpgrade() {
-  var el = document.getElementById('base-upgrade-list');
+  var el  = document.getElementById('base-upgrade-list');
   var gel = document.getElementById('base-upgrade-gold');
   if (!el) return;
   el.innerHTML = '';
   if (gel) gel.textContent = '💰 ' + SAVE.gold + ' G';
 
   Object.keys(BASE_UPGRADES).forEach(function(key) {
-    var d = BASE_UPGRADES[key];
-    var lv = SAVE.baseLevels[key] || 0;
-    
-    // コスト計算：(現在のレベル + 1) × 100G （拠点は少し高めに設定）
-    var cost = (lv + 1) * 100; 
-    var maxed = lv >= d.max;
-    var canBuy = !maxed && SAVE.gold >= cost;
-
-    var currentVal = d.base + lv * d.step;
+    var d    = BASE_UPGRADES[key];
+    var lv   = SAVE.baseLevels[key] || 0;
+    var cost = (lv + 1) * 100;
+    var maxed   = lv >= d.max;
+    var canBuy  = !maxed && SAVE.gold >= cost;
+    var curVal  = d.base + lv * d.step;
     var nextVal = d.base + (lv + 1) * d.step;
 
     var row = document.createElement('div');
@@ -258,9 +314,8 @@ function renderBaseUpgrade() {
         '<div class="up-nm">' + d.n +
           ' <span class="up-lv' + (maxed ? ' up-maxed-lbl' : '') + '">Lv.' + lv + '/' + d.max + '</span>' +
         '</div>' +
-        '<div class="up-stat">' +
-          '現在 <b>' + currentVal + '</b>' + (maxed ? '' : ' → <b>' + nextVal + '</b>') +
-        '</div>' +
+        '<div class="up-stat">現在 <b>' + curVal + '</b>' +
+          (maxed ? '' : ' → <b>' + nextVal + '</b>') + '</div>' +
         '<div class="up-track"><div class="up-prog" style="width:' + (lv * (100/d.max)) + '%"></div></div>' +
       '</div>' +
       '<button class="up-btn' +
@@ -268,22 +323,21 @@ function renderBaseUpgrade() {
         (maxed || !canBuy ? ' disabled' : '') +
         '>' + (maxed ? 'MAX' : 'G' + cost) + '</button>';
 
-    // ボタンクリック時のイベント
-    row.querySelector('.up-btn').addEventListener('click', function() { doBaseUpgrade(key, cost, d.max); });
+    row.querySelector('.up-btn').addEventListener('click', function() {
+      doBaseUpgrade(key, cost, d.max);
+    });
     el.appendChild(row);
   });
 }
 
-// 強化実行処理
 function doBaseUpgrade(key, cost, max) {
   var lv = SAVE.baseLevels[key] || 0;
   if (lv >= max) return;
   if (SAVE.gold < cost) { flashMsg('ゴールドが足りません'); return; }
-  
   SAVE.gold -= cost;
   SAVE.baseLevels[key] = lv + 1;
-  persistSave();        // 保存
-  renderBaseUpgrade();  // 画面の再描画
+  persistSave();
+  renderBaseUpgrade();
 }
 
 // ── Stage Selection ───────────────────────────────────
@@ -296,7 +350,6 @@ function renderStages() {
   var el = document.getElementById('stage-list');
   if (!el) return;
   el.innerHTML = '';
-
   STAGES.forEach(function(s) {
     var active = selectedStage && selectedStage.id === s.id;
     var card = document.createElement('div');
@@ -325,7 +378,6 @@ function startBattle() {
   showScreen('battle');
   startGame(selectedStage);
 }
-
 
 // ── Battle End Reward ─────────────────────────────────
 function awardBattleGold(win, leftoverGold) {
