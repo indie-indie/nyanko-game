@@ -12,7 +12,7 @@ var PLAYER_UNITS = {
   archer:   { n:'アーチャー',e:'🏹', cost:15,  hp:90,  dmg:28, spd:48,  rng:140, ar:1.2, type:'ground', targets:'both',   cd:1.6, size:1.0, rew:1, zone:'own', unlockCost:0 },
   golem:    { n:'ゴーレム',  e:'🛡️', cost:50, hp:420, dmg:15, spd:24,  rng:30,  ar:1.3, type:'ground', targets:'ground', cd:3.0, size:1.5, rew:2, zone:'own', unlockCost:300 },
   sniper:   { n:'スナイパー',e:'🎯', cost:30,  hp:55,  dmg:34, spd:40,  rng:100, ar:1.2, type:'ground', targets:'both',   cd:2.0, size:0.9, rew:1, zone:'all', unlockCost:250 },
-  assassin: { n:'アサシン',  e:'🗡️', cost:20, hp:70,  dmg:45, spd:110, rng:50,  ar:0.8, type:'ground', targets:'ground', cd:1.5, size:0.9, rew:2, zone:'all', unlockCost:350 },
+  assassin: { n:'アサシン',  e:'🥷', cost:20, hp:70,  dmg:45, spd:110, rng:50,  ar:0.8, type:'ground', targets:'ground', cd:1.5, size:0.9, rew:2, zone:'all', unlockCost:350 },
   mage:     { n:'メイジ',    e:'🔥', cost:28,  hp:100, dmg:38, spd:40,  rng:120, ar:1.4, type:'ground', targets:'both',   cd:2.2, size:1.0, rew:2, zone:'all', unlockCost:400, area:20 },
   wolf:     { n:'ウルフ',    e:'🐺', cost:12,  hp:85,  dmg:16, spd:120, rng:50,  ar:0.9, type:'ground', targets:'ground', cd:1.0, size:0.9, rew:1, zone:'own', unlockCost:200 },
   wyvern:   { n:'ワイバーン',e:'🦇', cost:50,  hp:260, dmg:42, spd:55,  rng:110, ar:1.3, type:'air',    targets:'both',   cd:2.5, size:1.2, rew:3, zone:'all', unlockCost:600 },

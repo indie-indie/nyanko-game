@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Wave Editor — ニャンコRTS</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#03060f;color:#e2e8f0;font-family:-apple-system,'Hiragino Sans',sans-serif;font-size:13px}
+.app{display:flex;flex-direction:column;height:100vh}
+/* ── Header ── */
+.hdr{background:#080d1e;border-bottom:1.5px solid #1a2a4a;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr h1{font-size:16px;font-weight:700;color:#f1f5f9}
+.hdr-sub{color:#475569;font-size:12px;font-weight:400}
+.hdr-btns{display:flex;gap:7px}
+/* ── Tabs ── */
+.tabs{background:#060b1a;border-bottom:1px solid #1a2a4a;display:flex;flex-shrink:0;overflow-x:auto}
+.tb{padding:9px 16px;background:none;border:none;color:#64748b;cursor:pointer;font-size:13px;font-family:inherit;border-bottom:2px solid transparent;transition:color .12s,border-color .12s;white-space:nowrap;flex-shrink:0}
+.tb:hover{color:#94a3b8}.tb.on{color:#60a5fa;border-bottom-color:#60a5fa}
+/* ── Panels ── */
+.panel{display:none;flex:1;overflow:hidden}
+.panel.on{display:flex;flex-direction:column}
+.scroll{overflow-y:auto;flex:1;padding:14px}
+/* ── Buttons ── */
+.btn{background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;transition:background .12s;white-space:nowrap}
+.btn:hover:not(:disabled){background:#334155}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-g{background:#0f2a10;color:#86efac;border-color:#166534}.btn-g:hover:not(:disabled){background:#14532d}
+.btn-r{background:#2d0a0a;color:#fca5a5;border-color:#7f1d1d}.btn-r:hover:not(:disabled){background:#450a0a}
+.btn-b{background:#1d4ed8;color:#fff;border-color:#1d4ed8}.btn-b:hover:not(:disabled){background:#2563eb}
+.btn-o{background:#7c2d12;color:#fdba74;border-color:#9a3412}.btn-o:hover:not(:disabled){background:#9a3412}
+/* ── Inputs ── */
+input[type=number],input[type=text]{background:#0d1f3a;border:1px solid #1e3a5f;border-radius:5px;color:#e2e8f0;padding:4px 8px;font-size:12px;font-family:inherit;outline:none}
+input[type=number]:focus,input[type=text]:focus{border-color:#3b82f6}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:#1e3a5f;border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#3b82f6;border-radius:50%;cursor:pointer}
+select{background:#0d1f3a;border:1px solid #1e3a5f;border-radius:5px;color:#e2e8f0;padding:4px 8px;font-size:12px;font-family:inherit}
+.tog{width:34px;height:18px;background:#1e3a5f;border-radius:9px;position:relative;cursor:pointer;border:none;flex-shrink:0;transition:background .15s}
+.tog.on{background:#1d4ed8}.tog::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .15s}.tog.on::after{left:18px}
+/* ── Common layout ── */
+.sec{background:#080d1e;border:1px solid #1a2a4a;border-radius:8px;padding:14px;margin-bottom:12px}
+.sec-t{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.frow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.frow label{min-width:110px;font-size:11px;color:#64748b;flex-shrink:0}
+/* ── STAGE LIST ── */
+.stage-layout{display:flex;flex:1;overflow:hidden}
+.sl{width:220px;flex-shrink:0;border-right:1px solid #1a2a4a;display:flex;flex-direction:column;background:#060b1a}
+.sl-hdr{padding:9px 12px;border-bottom:1px solid #1a2a4a;font-size:10px;color:#475569;font-weight:700;letter-spacing:.5px;text-transform:uppercase;flex-shrink:0}
+.sl-list{overflow-y:auto;flex:1}
+.sl-card{padding:10px 12px;border-bottom:1px solid #0d1628;cursor:pointer;transition:background .1s;display:flex;align-items:center;gap:9px}
+.sl-card:hover{background:#0d1f3a}.sl-card.on{background:#0f2040;border-left:2px solid #3b82f6;padding-left:10px}
+.sl-ico{font-size:20px;flex-shrink:0}.sl-info{flex:1;min-width:0}
+.sl-name{font-size:12px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl-sub{font-size:10px;color:#475569}
+.sl-acts{display:flex;gap:2px;flex-shrink:0}
+.sl-acts button{background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:3px;font-size:10px;color:#334155;transition:color .1s,background .1s;line-height:1}
+.sl-acts button:hover{color:#94a3b8;background:#1e293b}.sl-acts button:disabled{opacity:.2;cursor:not-allowed}
+.sl-ftr{padding:10px 12px;border-top:1px solid #1a2a4a;flex-shrink:0}
+.sd{flex:1;overflow-y:auto;padding:14px}
+.empty-hint{padding:40px;text-align:center;color:#334155;font-size:13px}
+/* ── WAVE EDITOR ── */
+.wave-layout{display:flex;flex:1;overflow:hidden}
+.wl{width:195px;flex-shrink:0;border-right:1px solid #1a2a4a;display:flex;flex-direction:column;background:#060b1a}
+.wl-hdr{padding:9px 12px;border-bottom:1px solid #1a2a4a;font-size:10px;color:#475569;font-weight:700;letter-spacing:.5px;text-transform:uppercase;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+.wl-items{overflow-y:auto;flex:1}
+.wi{padding:8px 12px;border-bottom:1px solid #0d1628;cursor:pointer;transition:background .1s}
+.wi:hover{background:#0d1f3a}.wi.on{background:#0f2040;border-left:2px solid #3b82f6;padding-left:10px}
+.wi-r1{display:flex;justify-content:space-between;align-items:center}
+.wi-num{font-size:11px;font-weight:700;color:#60a5fa}.wi-till{font-size:10px;color:#475569;font-family:monospace}
+.wi-acts button{background:none;border:none;color:#334155;cursor:pointer;font-size:10px;padding:2px 4px;border-radius:3px;line-height:1}
+.wi-acts button:hover{color:#94a3b8;background:#1e293b}.wi-acts button:disabled{opacity:.2;cursor:not-allowed}
+.wi-icons{font-size:13px;margin-top:3px;min-height:18px;letter-spacing:1px}
+.wl-ftr{padding:10px 12px;border-top:1px solid #1a2a4a;flex-shrink:0}
+.we{flex:1;overflow-y:auto;padding:14px}
+/* enemy cards */
+.rbar{height:10px;background:#060b1a;border-radius:4px;overflow:hidden;display:flex;margin-bottom:12px}
+.rseg{height:100%;transition:width .2s}
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:7px}
+.ecard{background:#0d1f3a;border:1px solid #1e3a5f;border-radius:8px;padding:9px;transition:border-color .12s}
+.ecard.on{border-color:#3b82f6;background:#0f2040}
+.ec-top{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.ec-ico{font-size:18px;flex-shrink:0}.ec-nm{font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ec-sw{font-size:10px;color:#f97316}
+.ec-w{display:flex;align-items:center;gap:6px}
+.ec-w input{flex:1}.ec-wv{font-family:monospace;font-size:11px;color:#60a5fa;min-width:18px;text-align:right}
+/* ── EMERGENCY SPAWNS ── */
+.es-card{background:#080d1e;border:1px solid #1a2a4a;border-radius:8px;padding:13px;margin-bottom:10px}
+.es-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.es-pct{font-size:13px;font-weight:700;color:#f97316}
+.es-units{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.es-unit{display:flex;align-items:center;gap:5px;background:#0d1f3a;border:1px solid #1e3a5f;border-radius:6px;padding:4px 8px}
+.es-unit-ico{font-size:16px}.es-unit-cnt{font-family:monospace;font-size:12px;color:#93c5fd}
+.es-unit button{background:none;border:none;cursor:pointer;color:#475569;font-size:11px;padding:0 2px;line-height:1}
+.es-unit button:hover{color:#f87171}
+/* ── SHOCKWAVE ── */
+.swgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:10px}
+.swcard{background:#080d1e;border:1px solid #1a2a4a;border-radius:8px;padding:13px;transition:border-color .12s}
+.swcard.on{border-color:#f97316}
+.sw-hdr{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.sw-ico{font-size:22px}.sw-nm{flex:1;font-weight:600;font-size:13px}
+.sw-body{display:flex;flex-direction:column;gap:7px}
+.swr{display:flex;align-items:center;gap:8px}
+.swr label{min-width:85px;font-size:11px;color:#64748b}
+.swr input[type=number]{width:70px}
+.sw-off{color:#334155;font-size:11px;text-align:center;padding:6px}
+/* ── EXPORT ── */
+.ep{padding:14px;display:flex;flex-direction:column;gap:12px}
+.eb-card{background:#080d1e;border:1px solid #1a2a4a;border-radius:8px;padding:14px}
+.eb-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.eb-hdr h3{font-size:12px;color:#64748b;font-weight:700;text-transform:uppercase}
+.eb-card textarea{width:100%;height:190px;background:#060b1a;border:1px solid #1e3a5f;border-radius:5px;color:#a3e635;padding:9px;font-family:monospace;font-size:11px;resize:vertical;outline:none;line-height:1.5}
+.note{font-size:11px;color:#475569;line-height:1.7;margin-top:8px}
+.note code{color:#93c5fd;background:#0d1f3a;padding:1px 4px;border-radius:3px}
+/* ── Breadcrumb ── */
+.bc{padding:7px 14px;background:#060b1a;border-bottom:1px solid #1a2a4a;font-size:11px;color:#475569;flex-shrink:0}
+.bc span{color:#60a5fa}
+/* Stage badge in wave header */
+.stage-badge{font-size:10px;font-weight:600;color:#60a5fa;background:#0d2040;padding:2px 8px;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<div class="hdr">
+  <h1>🌊 Wave Editor <span class="hdr-sub">— ニャンコRTS</span></h1>
+  <div class="hdr-btns">
+    <button class="btn" onclick="saveState()">💾 保存</button>
+    <button class="btn" onclick="loadState()">📂 読込</button>
+    <button class="btn btn-r" onclick="resetState()">↺ リセット</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<nav class="tabs">
+  <button class="tb on"  onclick="swTab('stages',this)"    >🗺 ステージ一覧</button>
+  <button class="tb"     onclick="swTab('waves',this)"     >📋 ウェーブ編集</button>
+  <button class="tb"     onclick="swTab('emergency',this)" >⚡ 緊急スポーン</button>
+  <button class="tb"     onclick="swTab('shockwave',this)" >💥 衝撃波</button>
+  <button class="tb"     onclick="swTab('export',this)"    >📤 エクスポート</button>
+</nav>
+
+<!-- STAGE LIST -->
+<div id="p-stages" class="panel on">
+  <div class="stage-layout">
+    <div class="sl">
+      <div class="sl-hdr">ステージ一覧</div>
+      <div id="sl-list" class="sl-list"></div>
+      <div class="sl-ftr">
+        <button class="btn btn-g" style="width:100%" onclick="addStage()">＋ ステージ追加</button>
+      </div>
+    </div>
+    <div id="sd" class="sd"></div>
+  </div>
+</div>
+
+<!-- WAVE EDITOR -->
+<div id="p-waves" class="panel">
+  <div id="wave-bc" class="bc">ステージを選択してください</div>
+  <div class="wave-layout">
+    <div class="wl">
+      <div class="wl-hdr">
+        <span>ウェーブ一覧</span>
+      </div>
+      <div id="wl-items" class="wl-items"></div>
+      <div class="wl-ftr">
+        <button class="btn btn-g" style="width:100%" onclick="addWave()">＋ ウェーブ追加</button>
+      </div>
+    </div>
+    <div id="we" class="we"></div>
+  </div>
+</div>
+
+<!-- EMERGENCY SPAWNS -->
+<div id="p-emergency" class="panel">
+  <div id="em-bc" class="bc">ステージを選択してください</div>
+  <div id="em-body" class="scroll"></div>
+</div>
+
+<!-- SHOCKWAVE -->
+<div id="p-shockwave" class="panel">
+  <div class="scroll"><div id="swgrid" class="swgrid"></div></div>
+</div>
+
+<!-- EXPORT -->
+<div id="p-export" class="panel">
+  <div id="ep" class="scroll ep"></div>
+</div>
+
+</div><!-- .app -->
+
+<!-- Load enemies.js from same folder -->
+<script src="enemies.js"></script>
+<script>
+'use strict';
+
+// ── Enemy color map ───────────────────────────────────
+const ENEMY_COLORS = {
+  gremlin:'#f97316', ironbot:'#94a3b8', shade:'#a78bfa', warlock:'#c084fc',
+  slime:'#4ade80', goblin:'#fb923c', orc:'#84cc16', lancer:'#22d3ee', garpy:'#facc15'
+};
+function eColor(id){ return ENEMY_COLORS[id] || '#64748b'; }
+
+// ── Build EL (enemy list) from enemies.js ENEMY_UNITS ─
+let EL = [];
+if(typeof ENEMY_UNITS !== 'undefined'){
+  EL = Object.entries(ENEMY_UNITS).map(([id,d])=>({id, n:d.n, e:d.e, c:eColor(id)}));
+} else {
+  // Fallback if enemies.js not loaded (direct file:// open without server)
+  const fallback = {
+    slime:{n:'スライム',e:'🟢'},gremlin:{n:'グレムリン',e:'👹'},shade:{n:'シェード',e:'💀'},
+    goblin:{n:'ゴブリン',e:'👺'},orc:{n:'オーク',e:'🪓'},lancer:{n:'ランサー',e:'🔱'},
+    ironbot:{n:'アイアンボット',e:'🤖'},warlock:{n:'ウォーロック',e:'🔮'},garpy:{n:'ガーピー',e:'🦅'}
+  };
+  EL = Object.entries(fallback).map(([id,d])=>({id,n:d.n,e:d.e,c:eColor(id)}));
+}
+
+// ── Default data builders ─────────────────────────────
+function mkStage(index){
+  const names=[['ステージ 1','草原の戦い','🌿'],['ステージ 2','砂漠の砦','🏜️'],['ステージ 3','魔王の城','🏰']];
+  const nm = names[index] || ['ステージ '+(index+1),'新エリア','⭐'];
+  return {
+    name:nm[0], sub:nm[1], icon:nm[2],
+    enemyMult:+(1+index*0.4).toFixed(1),
+    baseReward:150+index*130,
+    enemyBaseHP:1000+index*500,
+    waves: mkDefaultWaves(index),
+    emergencySpawns: mkDefaultES()
+  };
+}
+
+function mkDefaultWaves(stageIdx){
+  const mul = 1 + stageIdx * 0.3;
+  return [
+    {till:20,  intv:[3.5,4.5], pool:{slime:5,gremlin:3}},
+    {till:40,  intv:[3,4],     pool:{gremlin:4,goblin:3,shade:2}},
+    {till:60,  intv:[4,6],     pool:{goblin:2,orc:3,ironbot:2}},
+    {till:80,  intv:[3.5,5],   pool:{orc:2,garpy:5,lancer:3}},
+    {till:100, intv:[3,4.5],   pool:{ironbot:2,warlock:3,lancer:5}},
+    {till:120, intv:[2,3.5],   pool:{orc:4,ironbot:2,garpy:4,warlock:2,lancer:3}},
+    {till:999, intv:[1.5,2.5], pool:{ironbot:4,orc:4,warlock:3,garpy:5,lancer:4}},
+  ];
+}
+
+function mkDefaultES(){
+  return [
+    {hpPercent:50, spawns:[{id:'garpy',count:3}]},
+    {hpPercent:20, spawns:[{id:'ironbot',count:1},{id:'warlock',count:2}]}
+  ];
+}
+
+function mkSW(){
+  const sw = {};
+  EL.forEach(e=>sw[e.id]={enabled:false,trigger:'spawn',radius:180,force:130,interval:8,damage:0});
+  if(sw.ironbot) Object.assign(sw.ironbot,{enabled:true,trigger:'spawn',   radius:250,force:200});
+  if(sw.warlock) Object.assign(sw.warlock,{enabled:true,trigger:'interval',radius:200,force:140,interval:10,damage:20});
+  if(sw.orc)     Object.assign(sw.orc,    {enabled:true,trigger:'death',   radius:200,force:160});
+  return sw;
+}
+
+// ── State ─────────────────────────────────────────────
+let S = {
+  stages:[mkStage(0),mkStage(1),mkStage(2)],
+  sw:mkSW(),
+  selStage:0,
+  selWave:0
+};
+
+// ── Persistence ───────────────────────────────────────
+function saveState(){localStorage.setItem('nrts_we2',JSON.stringify(S));flash('💾 保存しました')}
+function loadState(){
+  const d=localStorage.getItem('nrts_we2');
+  if(!d){flash('保存データなし');return}
+  S=JSON.parse(d);
+  // sw entries for new enemies that didn't exist when saved
+  EL.forEach(e=>{ if(!S.sw[e.id]) S.sw[e.id]={enabled:false,trigger:'spawn',radius:180,force:130,interval:8,damage:0}; });
+  renderAll();flash('📂 読み込みました');
+}
+function resetState(){if(!confirm('リセットしますか？'))return;S={stages:[mkStage(0),mkStage(1),mkStage(2)],sw:mkSW(),selStage:0,selWave:0};renderAll()}
+
+function flash(msg){
+  let el=document.getElementById('flash');
+  if(!el){el=document.createElement('div');el.id='flash';el.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 20px;font-size:13px;color:#f1f5f9;z-index:999;pointer-events:none;transition:opacity .3s';document.body.appendChild(el);}
+  el.textContent=msg;el.style.opacity='1';clearTimeout(flash._t);flash._t=setTimeout(()=>el.style.opacity='0',2000);
+}
+
+// ── Tab switch ────────────────────────────────────────
+function swTab(name,btn){
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p-'+name).classList.add('on');
+  if(name==='stages')    renderStages();
+  else if(name==='waves')     renderWaves();
+  else if(name==='emergency') renderEmergency();
+  else if(name==='shockwave') renderSW();
+  else if(name==='export')    renderExport();
+}
+
+function renderAll(){renderStages();renderWaves();renderEmergency();renderSW();}
+
+// ── Helper ────────────────────────────────────────────
+function curStage(){ return S.stages[S.selStage]||null; }
+function stageBC(label){
+  const st=curStage();
+  return st ? `${label}：<span>${st.icon} ${st.name}</span>` : 'ステージを選択してください';
+}
+
+// ═══════════════════════════════════════════════════════
+// STAGES
+// ═══════════════════════════════════════════════════════
+function renderStages(){
+  // Left list
+  document.getElementById('sl-list').innerHTML = S.stages.map((s,i)=>`
+    <div class="sl-card${i===S.selStage?' on':''}" onclick="selStage(${i})">
+      <span class="sl-ico">${s.icon}</span>
+      <div class="sl-info">
+        <div class="sl-name">${s.name}</div>
+        <div class="sl-sub">×${s.enemyMult.toFixed(1)} / 拠点HP ${s.enemyBaseHP}</div>
+      </div>
+      <div class="sl-acts">
+        <button onclick="mvStage(${i},-1);event.stopPropagation()" ${i===0?'disabled':''}>↑</button>
+        <button onclick="mvStage(${i},1);event.stopPropagation()" ${i===S.stages.length-1?'disabled':''}>↓</button>
+        <button onclick="rmStage(${i});event.stopPropagation()" style="color:#fca5a5">✕</button>
+      </div>
+    </div>`).join('');
+  // Right detail
+  const st=curStage();
+  const sd=document.getElementById('sd');
+  if(!st){sd.innerHTML='<div class="empty-hint">ステージを選択または追加してください</div>';return}
+  const i=S.selStage;
+  sd.innerHTML=`
+  <div class="sec">
+    <div class="sec-t">ステージ ${i+1} — 基本情報</div>
+    <div class="frow"><label>アイコン</label><input type="text" value="${st.icon}" style="width:50px" oninput="S.stages[${i}].icon=this.value;renderStages()"></div>
+    <div class="frow"><label>表示名</label><input type="text" value="${st.name}" style="flex:1" oninput="S.stages[${i}].name=this.value;renderStages()"></div>
+    <div class="frow"><label>サブタイトル</label><input type="text" value="${st.sub}" style="flex:1" oninput="S.stages[${i}].sub=this.value"></div>
+  </div>
+  <div class="sec">
+    <div class="sec-t">難易度 / 報酬</div>
+    <div class="frow">
+      <label>敵強化倍率</label>
+      <input type="number" value="${st.enemyMult}" min="0.5" max="10" step="0.1" style="width:72px" oninput="S.stages[${i}].enemyMult=+this.value;renderStages()">
+      <span style="color:#475569;font-size:11px">× (HP/ATK 全体)</span>
+    </div>
+    <div class="frow">
+      <label>基礎報酬 G</label>
+      <input type="number" value="${st.baseReward}" min="0" step="10" style="width:80px" oninput="S.stages[${i}].baseReward=+this.value">
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-t">敵拠点</div>
+    <div class="frow">
+      <label>拠点 HP</label>
+      <input type="number" value="${st.enemyBaseHP}" min="100" max="99999" step="100" style="width:90px" oninput="S.stages[${i}].enemyBaseHP=+this.value;renderStages()">
+      <span style="color:#475569;font-size:11px">（wave.js に書き出されます）</span>
+    </div>
+  </div>
+  <div class="sec" style="border-color:#1a3a1a">
+    <div class="sec-t" style="color:#4ade80">このステージを編集する</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-g" onclick="swTabTo('waves')">📋 ウェーブ編集 →</button>
+      <button class="btn btn-o" onclick="swTabTo('emergency')">⚡ 緊急スポーン →</button>
+    </div>
+  </div>`;
+}
+
+function swTabTo(name){
+  document.querySelectorAll('.tb').forEach((b,i)=>{
+    const names=['stages','waves','emergency','shockwave','export'];
+    b.classList.toggle('on',names[i]===name);
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p-'+name).classList.add('on');
+  if(name==='waves') renderWaves();
+  else if(name==='emergency') renderEmergency();
+}
+
+function selStage(i){S.selStage=i;S.selWave=0;renderStages();}
+function addStage(){S.stages.push(mkStage(S.stages.length));S.selStage=S.stages.length-1;S.selWave=0;renderStages()}
+function rmStage(i){
+  if(S.stages.length<=1){flash('最低1ステージ必要');return}
+  if(!confirm(`ステージ ${i+1} を削除しますか？`))return;
+  S.stages.splice(i,1);
+  if(S.selStage>=S.stages.length)S.selStage=S.stages.length-1;
+  renderStages();
+}
+function mvStage(i,d){
+  const j=i+d; if(j<0||j>=S.stages.length)return;
+  [S.stages[i],S.stages[j]]=[S.stages[j],S.stages[i]];
+  if(S.selStage===i)S.selStage=j; else if(S.selStage===j)S.selStage=i;
+  renderStages();
+}
+
+// ═══════════════════════════════════════════════════════
+// WAVES
+// ═══════════════════════════════════════════════════════
+function renderWaves(){
+  const bc=document.getElementById('wave-bc');
+  bc.innerHTML=stageBC('ウェーブ編集');
+  const st=curStage();
+  if(!st){document.getElementById('wl-items').innerHTML='';document.getElementById('we').innerHTML='<div class="empty-hint">左の「ステージ一覧」でステージを選択してください</div>';return}
+  renderWaveList();renderWaveEditor();
+}
+
+function renderWaveList(){
+  const st=curStage(); if(!st)return;
+  document.getElementById('wl-items').innerHTML=st.waves.map((w,i)=>{
+    const icons=Object.entries(w.pool).filter(([,v])=>v>0).map(([id])=>EL.find(e=>e.id===id)?.e||'').join('');
+    const till=w.till>=999?'∞':w.till+'s';
+    return `<div class="wi${i===S.selWave?' on':''}" onclick="selWave(${i},event)">
+      <div class="wi-r1">
+        <span class="wi-num">W${i+1}</span>
+        <span class="wi-till">〜${till}</span>
+        <div class="wi-acts">
+          <button onclick="mvWave(${i},-1);event.stopPropagation()" ${i===0?'disabled':''}>↑</button>
+          <button onclick="mvWave(${i},1);event.stopPropagation()" ${i===st.waves.length-1?'disabled':''}>↓</button>
+          <button onclick="rmWave(${i});event.stopPropagation()" style="color:#fca5a5">✕</button>
+        </div>
+      </div>
+      <div class="wi-icons">${icons||'—'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderWaveEditor(){
+  const el=document.getElementById('we');
+  const st=curStage(); if(!st){el.innerHTML='';return}
+  const w=st.waves[S.selWave];
+  if(!w){el.innerHTML='<div class="empty-hint">ウェーブを選択してください</div>';return}
+  const isLast=S.selWave===st.waves.length-1;
+  const totalW=Object.values(w.pool).reduce((s,v)=>s+v,0);
+  const rbar=totalW>0?EL.filter(e=>w.pool[e.id]>0).map(e=>`<div class="rseg" style="width:${(w.pool[e.id]/totalW*100).toFixed(1)}%;background:${e.c}"></div>`).join(''):'';
+  const si=S.selStage, wi=S.selWave;
+  el.innerHTML=`
+  <div class="sec">
+    <div class="sec-t">W${wi+1} — 基本設定 <span class="stage-badge">${st.icon} ${st.name}</span></div>
+    <div class="frow">
+      <label>終了時刻（秒）</label>
+      ${isLast?`<span style="color:#f59e0b;font-family:monospace">∞ 最終ウェーブ（変更不可）</span>`
+      :`<input type="number" value="${w.till}" min="10" max="9999" style="width:80px"
+          oninput="S.stages[${si}].waves[${wi}].till=+this.value;renderWaveList()">`}
+    </div>
+    <div class="frow">
+      <label>スポーン間隔</label>
+      <span style="font-size:11px;color:#64748b">最小</span>
+      <input type="number" value="${w.intv[0]}" min="0.3" max="20" step="0.5" style="width:62px" oninput="S.stages[${si}].waves[${wi}].intv[0]=+this.value">
+      <span style="font-size:11px;color:#64748b">〜 最大</span>
+      <input type="number" value="${w.intv[1]}" min="0.3" max="20" step="0.5" style="width:62px" oninput="S.stages[${si}].waves[${wi}].intv[1]=+this.value">
+      <span style="font-size:11px;color:#64748b">秒</span>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-t">敵出現プール<span style="font-weight:400;color:#475569;text-transform:none;letter-spacing:0;font-size:10px;margin-left:8px">バーは出現比率</span></div>
+    <div class="rbar">${rbar}</div>
+    <div class="egrid">
+      ${EL.map(e=>{
+        const v=w.pool[e.id]||0, act=v>0;
+        const hasSW=S.sw[e.id]?.enabled;
+        return `<div class="ecard${act?' on':''}">
+          <div class="ec-top">
+            <span class="ec-ico">${e.e}</span>
+            <span class="ec-nm">${e.n}${hasSW?'<span class="ec-sw"> 💥</span>':''}</span>
+            <button class="tog${act?' on':''}" onclick="togE(${si},${wi},'${e.id}')"></button>
+          </div>
+          ${act?`<div class="ec-w">
+            <input type="range" min="1" max="10" value="${v}"
+              oninput="setW(${si},${wi},'${e.id}',+this.value);this.nextElementSibling.textContent=this.value;updRbar()">
+            <span class="ec-wv">${v}</span>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function selWave(i,e){if(e&&e.target.tagName==='BUTTON')return;S.selWave=i;renderWaveList();renderWaveEditor()}
+function addWave(){
+  const st=curStage(); if(!st)return;
+  const n=st.waves.length;
+  const ins=n>0&&st.waves[n-1].till>=999?n-1:n;
+  const prevTill=ins>0?st.waves[ins-1].till:0;
+  st.waves.splice(ins,0,{till:prevTill+20,intv:[2.5,4],pool:{gremlin:3}});
+  S.selWave=ins;renderWaves();
+}
+function rmWave(i){
+  const st=curStage(); if(!st)return;
+  if(st.waves.length<=1){flash('最低1ウェーブ必要');return}
+  st.waves.splice(i,1);
+  if(S.selWave>=st.waves.length)S.selWave=st.waves.length-1;
+  renderWaves();
+}
+function mvWave(i,d){
+  const st=curStage(); if(!st)return;
+  const j=i+d; if(j<0||j>=st.waves.length)return;
+  [st.waves[i],st.waves[j]]=[st.waves[j],st.waves[i]];
+  if(S.selWave===i)S.selWave=j; else if(S.selWave===j)S.selWave=i;
+  renderWaves();
+}
+function togE(si,wi,eid){
+  const w=S.stages[si].waves[wi];
+  if(w.pool[eid])delete w.pool[eid]; else w.pool[eid]=3;
+  renderWaveEditor();renderWaveList();
+}
+function setW(si,wi,eid,v){S.stages[si].waves[wi].pool[eid]=v}
+function updRbar(){
+  const st=curStage(); if(!st)return;
+  const w=st.waves[S.selWave]; if(!w)return;
+  const totalW=Object.values(w.pool).reduce((s,v)=>s+v,0);
+  const bar=document.querySelector('.rbar'); if(!bar||totalW<=0)return;
+  bar.innerHTML=EL.filter(e=>w.pool[e.id]>0).map(e=>`<div class="rseg" style="width:${(w.pool[e.id]/totalW*100).toFixed(1)}%;background:${e.c}"></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// EMERGENCY SPAWNS
+// ═══════════════════════════════════════════════════════
+function renderEmergency(){
+  const bc=document.getElementById('em-bc');
+  bc.innerHTML=stageBC('緊急スポーン設定');
+  const el=document.getElementById('em-body');
+  const st=curStage();
+  if(!st){el.innerHTML='<div class="empty-hint">ステージを選択してください</div>';return}
+  const si=S.selStage;
+  // Sort by hpPercent descending for display
+  const sorted=st.emergencySpawns.map((es,i)=>({...es,_i:i})).sort((a,b)=>b.hpPercent-a.hpPercent);
+  el.innerHTML=`
+  <div style="margin-bottom:14px;color:#64748b;font-size:11px;line-height:1.7">
+    💡 敵拠点HPが指定の割合を下回ったときに、特定のユニットを即座にスポーンさせます。<br>
+    トリガーはHPが高い順に発動します。ステージ「${st.icon} ${st.name}」の設定です。
+  </div>
+  ${sorted.map(es=>`
+  <div class="es-card">
+    <div class="es-hdr">
+      <span style="font-size:11px;color:#64748b">敵拠点HP</span>
+      <input type="number" value="${es.hpPercent}" min="1" max="99" style="width:60px" oninput="S.stages[${si}].emergencySpawns[${es._i}].hpPercent=+this.value;renderEmergency()">
+      <span class="es-pct">% 以下</span>
+      <span style="flex:1"></span>
+      <button class="btn btn-r" style="padding:3px 8px;font-size:10px" onclick="rmES(${si},${es._i})">削除</button>
+    </div>
+    <div class="es-units">
+      ${es.spawns.map((sp,spi)=>{
+        const ef=EL.find(e=>e.id===sp.id);
+        return `<div class="es-unit">
+          <span class="es-unit-ico">${ef?ef.e:'❓'}</span>
+          <span style="font-size:11px;color:#94a3b8">${ef?ef.n:sp.id}</span>
+          <button onclick="chgSpawnCount(${si},${es._i},${spi},-1)">－</button>
+          <span class="es-unit-cnt">×${sp.count}</span>
+          <button onclick="chgSpawnCount(${si},${es._i},${spi},1)">＋</button>
+          <button onclick="rmSpawn(${si},${es._i},${spi})">✕</button>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span style="font-size:11px;color:#64748b">ユニット追加:</span>
+      <select id="es-sel-${si}-${es._i}">
+        ${EL.map(e=>`<option value="${e.id}">${e.e} ${e.n}</option>`).join('')}
+      </select>
+      <button class="btn btn-g" style="padding:3px 10px;font-size:11px" onclick="addSpawn(${si},${es._i})">追加</button>
+    </div>
+  </div>`).join('')}
+  <button class="btn btn-g" onclick="addES(${si})">＋ トリガー追加</button>`;
+}
+
+function addES(si){
+  const used=S.stages[si].emergencySpawns.map(e=>e.hpPercent);
+  let pct=50; while(used.includes(pct)&&pct>1)pct--;
+  S.stages[si].emergencySpawns.push({hpPercent:pct,spawns:[{id:EL[0]?.id||'gremlin',count:1}]});
+  renderEmergency();
+}
+function rmES(si,i){S.stages[si].emergencySpawns.splice(i,1);renderEmergency()}
+function addSpawn(si,esi){
+  const sel=document.getElementById(`es-sel-${si}-${esi}`);
+  if(!sel)return;
+  const id=sel.value;
+  const sp=S.stages[si].emergencySpawns[esi].spawns;
+  const ex=sp.find(s=>s.id===id);
+  if(ex)ex.count++; else sp.push({id,count:1});
+  renderEmergency();
+}
+function rmSpawn(si,esi,spi){
+  const sp=S.stages[si].emergencySpawns[esi].spawns;
+  sp.splice(spi,1);
+  if(sp.length===0)S.stages[si].emergencySpawns.splice(esi,1);
+  renderEmergency();
+}
+function chgSpawnCount(si,esi,spi,d){
+  const sp=S.stages[si].emergencySpawns[esi].spawns[spi];
+  sp.count=Math.max(1,sp.count+d);
+  renderEmergency();
+}
+
+// ═══════════════════════════════════════════════════════
+// SHOCKWAVE (global per enemy)
+// ═══════════════════════════════════════════════════════
+function renderSW(){
+  document.getElementById('swgrid').innerHTML=EL.map(e=>{
+    const sw=S.sw[e.id]||{enabled:false,trigger:'spawn',radius:180,force:130,interval:8,damage:0};
+    return `<div class="swcard${sw.enabled?' on':''}">
+      <div class="sw-hdr">
+        <span class="sw-ico">${e.e}</span>
+        <span class="sw-nm">${e.n}</span>
+        <button class="tog${sw.enabled?' on':''}" onclick="togSW('${e.id}')"></button>
+      </div>
+      ${sw.enabled?`<div class="sw-body">
+        <div class="swr"><label>発動トリガー</label>
+          <select onchange="S.sw['${e.id}'].trigger=this.value;renderSW()">
+            <option value="spawn"    ${sw.trigger==='spawn'   ?'selected':''}>スポーン時</option>
+            <option value="death"    ${sw.trigger==='death'   ?'selected':''}>撃破時</option>
+            <option value="interval" ${sw.trigger==='interval'?'selected':''}>定期的</option>
+          </select></div>
+        ${sw.trigger==='interval'?`<div class="swr"><label>発動間隔（秒）</label>
+          <input type="number" value="${sw.interval}" min="1" max="60"
+            oninput="S.sw['${e.id}'].interval=+this.value"></div>`:''}
+        <div class="swr"><label>半径 (px)</label>
+          <input type="number" value="${sw.radius}" min="30" max="400" step="10"
+            oninput="S.sw['${e.id}'].radius=+this.value"></div>
+        <div class="swr"><label>ノックバック力</label>
+          <input type="number" value="${sw.force}" min="10" max="600" step="10"
+            oninput="S.sw['${e.id}'].force=+this.value"></div>
+        <div class="swr"><label>ダメージ</label>
+          <input type="number" value="${sw.damage}" min="0" max="500" step="5"
+            oninput="S.sw['${e.id}'].damage=+this.value">
+          <span style="color:#475569;font-size:10px">0=なし</span></div>
+      </div>`:`<div class="sw-off">無効</div>`}
+    </div>`;
+  }).join('');
+}
+function togSW(id){
+  if(!S.sw[id])S.sw[id]={enabled:false,trigger:'spawn',radius:180,force:130,interval:8,damage:0};
+  S.sw[id].enabled=!S.sw[id].enabled;renderSW();
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════
+function renderExport(){
+  const wjs=genWaveJS();
+  const hjs=genHomeStagesJS();
+  document.getElementById('ep').innerHTML=`
+  <div class="eb-card">
+    <div class="eb-hdr"><h3>wave.js（全文置き換え）</h3><button class="btn btn-b" onclick="cp('ex-w')">📋 コピー</button></div>
+    <textarea id="ex-w" readonly>${wjs}</textarea>
+    <p class="note">
+      <code>wave.js</code> をこの内容で丸ごと置き換えてください。<br>
+      <code>STAGES_CONFIG</code>（ウェーブ・緊急スポーン・拠点HP）と <code>SHOCKWAVE_CONFIG</code> が含まれます。
+    </p>
+  </div>
+  <div class="eb-card">
+    <div class="eb-hdr"><h3>home.js — STAGES 部分（削除してください）</h3><button class="btn btn-b" onclick="cp('ex-h')">📋 コピー</button></div>
+    <textarea id="ex-h" readonly>${hjs}</textarea>
+    <p class="note">
+      <code>home.js</code> 内の <code>var STAGES = [...];</code> の行を<b>削除</b>し、代わりに <code>STAGES_CONFIG</code> を使うよう修正済みの <code>home.js</code> を使用してください。
+    </p>
+  </div>`;
+}
+
+function cp(id){
+  const el=document.getElementById(id);el.select();document.execCommand('copy');
+  const btn=event.target;const o=btn.textContent;btn.textContent='✅ コピー済み';setTimeout(()=>btn.textContent=o,1600);
+}
+
+// ── Code generators ───────────────────────────────────
+function genWaveJS(){
+  const swLines=EL.filter(e=>S.sw[e.id]?.enabled).map(e=>{
+    const sw=S.sw[e.id];
+    let o=`    ${e.id}: { trigger:'${sw.trigger}', radius:${sw.radius}, force:${sw.force}`;
+    if(sw.trigger==='interval')o+=`, interval:${sw.interval}`;
+    if(sw.damage>0)o+=`, damage:${sw.damage}`;
+    return o+' }';
+  });
+  const swBlock=swLines.length>0?`{\n${swLines.join(',\n')}\n}`:'{}';
+
+  const stagesStr=S.stages.map((st,si)=>{
+    const wavesStr=st.waves.map((w,wi)=>{
+      const isLast=wi===st.waves.length-1;
+      const pool=Object.entries(w.pool).filter(([,v])=>v>0).map(([id,v])=>`{id:'${id}',w:${v}}`).join(', ');
+      return `      { till:${isLast?'1e9':w.till}, pool:[${pool}], intv:[${w.intv[0]},${w.intv[1]}] }`;
+    }).join(',\n');
+    const esStr=st.emergencySpawns.sort((a,b)=>b.hpPercent-a.hpPercent).map(es=>{
+      const spawnsStr=es.spawns.map(sp=>`{id:'${sp.id}',count:${sp.count}}`).join(', ');
+      return `      { hpPercent:${es.hpPercent}, spawns:[${spawnsStr}] }`;
+    }).join(',\n');
+    return `  {\n    id:${si+1}, name:'${st.name}', sub:'${st.sub}', icon:'${st.icon}',\n    enemyMult:${st.enemyMult}, baseReward:${st.baseReward}, enemyBaseHP:${st.enemyBaseHP},\n    waves:[\n${wavesStr}\n    ],\n    emergencySpawns:[\n${esStr}\n    ]\n  }`;
+  }).join(',\n');
+
+  return [
+    `// wave.js — Wave definitions, shockwave config & enemy spawn logic`,
+    `// ⚠ このファイルは Wave Editor で自動生成されました`,
+    ``,
+    `// ── 衝撃波設定（敵ユニットごと）────────────────────`,
+    `var SHOCKWAVE_CONFIG = ${swBlock};`,
+    ``,
+    `// ── ステージ設定（ウェーブ・緊急スポーン・拠点HP）──`,
+    `var STAGES_CONFIG = [`,
+    stagesStr,
+    `];`,
+    ``,
+    `// ── Wave helpers ──────────────────────────────────`,
+    `function getPhase(waves, t) {`,
+    `  for (var i = 0; i < waves.length; i++) {`,
+    `    if (t < waves[i].till) return waves[i];`,
+    `  }`,
+    `  return waves[waves.length - 1];`,
+    `}`,
+    ``,
+    `function wRand(pool) {`,
+    `  var s = 0;`,
+    `  for (var i = 0; i < pool.length; i++) s += pool[i].w;`,
+    `  var r = Math.random() * s;`,
+    `  for (var i = 0; i < pool.length; i++) { r -= pool[i].w; if (r <= 0) return pool[i].id; }`,
+    `  return pool[pool.length - 1].id;`,
+    `}`,
+    ``,
+    `function updateWave(g, dt) {`,
+    `  var ph = getPhase(g.stageWaves, g.t);`,
+    `  var hpPct = (g.eb.hp / g.eb.max) * 100;`,
+    `  // 緊急スポーントリガー`,
+    `  for (var ei = 0; ei < g.emergencySpawns.length; ei++) {`,
+    `    var es = g.emergencySpawns[ei];`,
+    `    if (!es.triggered && hpPct <= es.hpPercent) {`,
+    `      es.triggered = true;`,
+    `      for (var si = 0; si < es.spawns.length; si++) {`,
+    `        for (var ci = 0; ci < es.spawns[si].count; ci++) {`,
+    `          spawnEnemy(g, es.spawns[si].id);`,
+    `        }`,
+    `      }`,
+    `    }`,
+    `  }`,
+    `  // 通常スポーン`,
+    `  g.eTimer += dt;`,
+    `  if (g.eTimer >= g.eNext) {`,
+    `    g.eTimer = 0;`,
+    `    g.eNext  = ph.intv[0] + Math.random() * (ph.intv[1] - ph.intv[0]);`,
+    `    spawnEnemy(g, wRand(ph.pool));`,
+    `  }`,
+    `}`,
+    ``,
+    `function spawnEnemy(g, defId) {`,
+    `  var d = ENEMY_UNITS[defId]; if (!d) return;`,
+    `  var mult = g.stageMult || 1.0;`,
+    `  var scaledD = {`,
+    `    n:d.n, e:d.e, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),`,
+    `    spd:d.spd, rng:d.rng, ar:d.ar, type:d.type, targets:d.targets,`,
+    `    size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1`,
+    `  };`,
+    `  var margin = 28;`,
+    `  var x = margin + Math.random() * (W - margin * 2);`,
+    `  var u = mkUnit(defId, 'enemy', x, ESY, scaledD);`,
+    `  g.units.push(u);`,
+    `  var swc = SHOCKWAVE_CONFIG[defId];`,
+    `  if (swc && swc.trigger === 'spawn' && typeof triggerShockwave === 'function') {`,
+    `    triggerShockwave(g, x, ESY, swc);`,
+    `  }`,
+    `}`,
+  ].join('\n');
+}
+
+function genHomeStagesJS(){
+  return `// ── home.js では STAGES_CONFIG（wave.js で定義）を直接使用します ──
+// 以下のような var STAGES = [...] の記述は home.js から削除してください。
+// 代わりに home.js 内の renderStages / startBattle 等で
+// STAGES_CONFIG を参照するように変更済みの home.js を使用してください。
+//
+// ※ 修正済み home.js は一緒に配布されています。`;
+}
+
+// ── Init ─────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>

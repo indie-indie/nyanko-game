@@ -20,27 +20,34 @@ function startGame(stageConfig) {
   spawnedEmergency50 = false;
   spawnedEmergency20 = false;
 
-  var stage = stageConfig || { enemyMult: 1.0, baseReward: 150 };
+  var stage = stageConfig || STAGES_CONFIG[0];
   var base  = SAVE.baseLevels || {};
   var initRegen = 5   + (base.regen   || 0) * 0.5;
   var initMaxG  = 100 + (base.maxGold || 0) * 20;
   var pbHp      = 1000 + (base.hp     || 0) * 200;
   var pbAtk     = 20   + (base.atk    || 0) * 8;
 
+  var ebHp = stage.enemyBaseHP || 1000;
+
   g = {
     on: true, t: 0,
     pb: { hp:pbHp, max:pbHp, cd:0, ar:1.2, dmg:pbAtk, rng:150 },
-    eb: { hp:1000, max:1000 },
+    eb: { hp:ebHp, max:ebHp },
     units: [],
     projectiles: [],
-    shockwaves:  [],   // ← 衝撃波ビジュアルリスト
+    shockwaves:  [],
     gold: 0, maxGold: initMaxG, regen: initRegen,
     upgradeCost: Math.round(initMaxG * 0.7),
     unitCDs: {},
     selectedUnit: null,
     eTimer: 0, eNext: 4.5,
     shake: 0,
-    stageMult: stage.enemyMult || 1.0
+    stageMult: stage.enemyMult || 1.0,
+    // ステージごとのウェーブ・緊急スポーンを注入
+    stageWaves: stage.waves || [],
+    emergencySpawns: (stage.emergencySpawns || []).map(function(es) {
+      return { hpPercent: es.hpPercent, spawns: es.spawns, triggered: false };
+    })
   };
 
   PLAYER_DECK.forEach(function(id) { g.unitCDs[id] = 0; });
@@ -266,27 +273,54 @@ function update(dt) {
   }
 
   // プロジェクタイル更新
-  for (var qi = 0; qi < g.projectiles.length; qi++) {
-    var proj = g.projectiles[qi];
-    if (proj.tgt.dead) { proj.dead = true; continue; }
-    var pdx = proj.tgt.x - proj.x, pdy = proj.tgt.y - proj.y;
-    var pdst = Math.hypot(pdx, pdy), pmv = proj.spd * dt;
-    if (pdst <= pmv) {
+// ── 弾（プロジェクタイル）の更新ループ ──
+for (var qi = 0; qi < g.projectiles.length; qi++) {
+  var proj = g.projectiles[qi];
+  // ターゲットが死亡（または拠点が破壊）していたら弾を消す
+  if (proj.tgt.dead) { proj.dead = true; continue; }
+
+  var pdx = proj.tgt.x - proj.x, pdy = proj.tgt.y - proj.y;
+  var pdst = Math.hypot(pdx, pdy), pmv = proj.spd * dt;
+
+  if (pdst <= pmv) {
+    // 🎯 ターゲットに到達した時の処理
+    if (proj.tgt.isBase) {
+      // 【重要】ターゲットが拠点(isBase)の場合
+      hitBase(proj.tgt.baseIdx, proj.dmg);
+      
+      // 範囲攻撃(area)の設定がある場合は、爆発エフェクトと周囲へのダメージ
+      if (proj.area) {
+        burst(proj.tgt.x, proj.tgt.y, '#f97316', 5);
+        for (var pk = 0; pk < g.units.length; pk++) {
+          var ae = g.units[pk];
+          if (ae.team !== proj.team && !ae.dead &&
+              Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) {
+            hitUnit(ae, proj.dmg);
+          }
+        }
+      }
+    } else {
+      // 通常のターゲット（ユニット）の場合
       if (proj.area) {
         for (var pk = 0; pk < g.units.length; pk++) {
           var ae = g.units[pk];
           if (ae.team !== proj.team && !ae.dead &&
-              Math.hypot(ae.x-proj.tgt.x, ae.y-proj.tgt.y) < proj.area)
+              Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) {
             hitUnit(ae, proj.dmg);
+          }
         }
         burst(proj.tgt.x, proj.tgt.y, '#f97316', 5);
-      } else { hitUnit(proj.tgt, proj.dmg); }
-      proj.dead = true;
-    } else {
-      proj.x += (pdx / pdst) * pmv;
-      proj.y += (pdy / pdst) * pmv;
+      } else {
+        hitUnit(proj.tgt, proj.dmg);
+      }
     }
+    proj.dead = true; // 着弾したので弾を消去
+  } else {
+    // 移動処理
+    proj.x += (pdx / pdst) * pmv;
+    proj.y += (pdy / pdst) * pmv;
   }
+}
   g.projectiles = g.projectiles.filter(function(p) { return !p.dead; });
 
   // 衝撃波ビジュアル更新
@@ -343,12 +377,25 @@ function update(dt) {
     var tBaseY   = (u.team === 'player') ? EBY : PBY;
     var distToBase = Math.hypot(tBaseX - u.x, tBaseY - u.y);
 
-    // 拠点攻撃
-    if (distToBase < 55) {
-      if (u.cd <= 0) { u.cd = u.ar; hitBase(baseIdx, u.dmg); }
+// 拠点攻撃
+    // 拠点の当たり判定(55)を考慮し、遠距離キャラは自身の射程(u.rng)の距離から攻撃
+    var attackRange = Math.max(55, u.rng);
+    if (distToBase <= attackRange) {
+      if (u.cd <= 0) { 
+        u.cd = u.ar; 
+        if (u.rng > 55) {
+          // 遠距離キャラの場合は、拠点用のダミーターゲットを作成して弾を飛ばす
+          var pcol = u.team === 'player' ? '#93c5fd' : '#fca5a5';
+          var dummyTgt = { x: tBaseX, y: tBaseY, dead: false, isBase: true, baseIdx: baseIdx };
+          g.projectiles.push({ x:u.x, y:u.type==='air'?u.y-22:u.y,
+            tgt:dummyTgt, dmg:u.dmg, spd:350, team:u.team, col:pcol, area:u.area });
+        } else {
+          // 近接キャラは直接ダメージを与える
+          hitBase(baseIdx, u.dmg); 
+        }
+      }
       continue;
     }
-
     // ユニット攻撃
     var tgt = findTarget(u);
     if (tgt) {

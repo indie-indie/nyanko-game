@@ -1,4 +1,5 @@
 // home.js — Screen manager, persistent save, deck builder, upgrade, stage select
+// ステージ定義は wave.js の STAGES_CONFIG を使用
 
 // ── 初期アンロック済みユニット ──────────────────────────
 var INITIAL_UNLOCKED = ['nyanko', 'wanko', 'bolt', 'soldier', 'archer'];
@@ -27,7 +28,6 @@ function loadSave() {
              deck:null, unlocked: INITIAL_UNLOCKED.slice() };
   }
 
-  // アンロック済みユニットのみデッキに含める
   if (!Array.isArray(SAVE.deck) || SAVE.deck.length === 0) {
     SAVE.deck = INITIAL_UNLOCKED.slice();
   }
@@ -36,8 +36,9 @@ function loadSave() {
   });
   if (SAVE.deck.length === 0) SAVE.deck = INITIAL_UNLOCKED.slice();
 
-  PLAYER_DECK    = SAVE.deck.slice();
-  selectedStage  = STAGES[0];
+  PLAYER_DECK   = SAVE.deck.slice();
+  // STAGES_CONFIG は wave.js で定義済み
+  selectedStage = STAGES_CONFIG[0];
 }
 
 function persistSave() {
@@ -48,31 +49,10 @@ function persistSave() {
   localStorage.setItem('nrts_unlocked',    JSON.stringify(SAVE.unlocked));
 }
 
-// アンロック済みかどうか判定
-function isUnlocked(id) {
-  return SAVE.unlocked.indexOf(id) >= 0;
-}
+function isUnlocked(id) { return SAVE.unlocked.indexOf(id) >= 0; }
+function getMultiplier(id) { return 1.0 + (SAVE.levels[id] || 0) * 0.1; }
+function getUpgradeCost(id) { return ((SAVE.levels[id] || 0) + 1) * 50; }
 
-// 強化倍率: Lv0=1.0x … Lv10=2.0x
-function getMultiplier(id) {
-  return 1.0 + (SAVE.levels[id] || 0) * 0.1;
-}
-// 強化コスト: Lv0→1=50G, Lv1→2=100G … Lv9→10=500G
-function getUpgradeCost(id) {
-  return ((SAVE.levels[id] || 0) + 1) * 50;
-}
-
-// ── Stage Definitions ────────────────────────────────
-var STAGES = [
-  { id:1, name:'ステージ 1', sub:'草原の戦い', icon:'🌿',
-    enemyMult:1, baseReward:150 },
-  { id:2, name:'ステージ 2', sub:'砂漠の砦', icon:'🏜️',
-    enemyMult:1.4, baseReward:280 },
-  { id:3, name:'ステージ 3', sub:'魔王の城', icon:'🏰',
-    enemyMult:1.8, baseReward:450 },
-  { id:4, name:'ステージ 4', sub:'絶望', icon:'⭐',
-    enemyMult:2, baseReward:600 }
-];
 // ── Screen Manager ────────────────────────────────────
 var SCREEN_IDS = ['home','deck','upgrade','stage','battle','base-up'];
 
@@ -116,7 +96,6 @@ function renderDeckBuilder() {
   el.innerHTML = '';
   if (cnt) cnt.textContent = deckSel.length + ' / 10';
 
-  // アンロック済みユニットのみ表示
   Object.keys(PLAYER_UNITS).forEach(function(id) {
     if (!isUnlocked(id)) return;
     var d   = PLAYER_UNITS[id];
@@ -124,18 +103,14 @@ function renderDeckBuilder() {
     var lv  = SAVE.levels[id] || 0;
     var m   = getMultiplier(id);
     var fs  = Math.min(Math.round(22 * (d.size || 1)), 30);
-
-    var typeTag = d.type === 'spell' ? '✨スペル'
-                : d.type === 'air'   ? '✈飛行' : '⚔地上';
+    var typeTag = d.type === 'spell' ? '✨スペル' : d.type === 'air' ? '✈飛行' : '⚔地上';
     var zoneTag = (d.type === 'spell' || d.zone === 'all') ? '全域' : '自陣';
-
     var statHtml = d.type === 'spell'
       ? 'ATK:' + Math.round(d.dmg * m) + ' 範囲:' + d.area + ' 💰' + d.cost
       : 'HP:'  + Math.round(d.hp  * m) + ' ATK:' + Math.round(d.dmg * m) + ' 💰' + d.cost;
 
     var card = document.createElement('div');
     card.className = 'dbcard' + (sel ? ' dbsel' : '');
-    card.setAttribute('data-id', id);
     card.innerHTML =
       '<span class="db-ico" style="font-size:' + fs + 'px">' + d.e + '</span>' +
       '<div class="db-body">' +
@@ -187,23 +162,20 @@ function renderUpgrade() {
   if (gel) gel.textContent = '💰 ' + SAVE.gold + ' G';
 
   Object.keys(PLAYER_UNITS).forEach(function(id) {
-    var d       = PLAYER_UNITS[id];
+    var d        = PLAYER_UNITS[id];
     var unlocked = isUnlocked(id);
-    var lv      = SAVE.levels[id] || 0;
-    var m       = getMultiplier(id);
-    var isSpell = d.type === 'spell';
-
-    var row = document.createElement('div');
+    var lv       = SAVE.levels[id] || 0;
+    var m        = getMultiplier(id);
+    var isSpell  = d.type === 'spell';
+    var row      = document.createElement('div');
     row.className = 'up-row';
 
     if (!unlocked) {
-      // ─── 未解放：アンロックボタン ───
       var ucost    = d.unlockCost || 0;
       var canUnlock = SAVE.gold >= ucost;
       var statHtml = isSpell
         ? 'ATK:' + d.dmg + '　範囲:' + d.area
         : 'HP:' + d.hp + '　ATK:' + d.dmg;
-
       row.innerHTML =
         '<div class="up-ico">' + d.e + '</div>' +
         '<div class="up-mid">' +
@@ -214,16 +186,11 @@ function renderUpgrade() {
         '</div>' +
         '<button class="up-btn' + (canUnlock ? ' up-btn-ok' : '') + '"' +
           (canUnlock ? '' : ' disabled') + '>解放 G' + ucost + '</button>';
-
       row.querySelector('.up-btn').addEventListener('click', function() { doUnlock(id); });
-
     } else {
-      // ─── 解放済み：強化ボタン ───
       var cost  = getUpgradeCost(id);
       var maxed = lv >= 10;
       var canBuy = !maxed && SAVE.gold >= cost;
-
-      // スペルはHP表記を省略し、ATK（ダメージ）のみ表示
       var statHtml;
       if (isSpell) {
         statHtml = 'ATK <b>' + d.dmg + '</b>→<b>' + Math.round(d.dmg * m) + '</b>';
@@ -232,7 +199,6 @@ function renderUpgrade() {
           'HP <b>' + d.hp + '</b>→<b>' + Math.round(d.hp * m) + '</b>　' +
           'ATK <b>' + d.dmg + '</b>→<b>' + Math.round(d.dmg * m) + '</b>';
       }
-
       row.innerHTML =
         '<div class="up-ico">' + d.e + '</div>' +
         '<div class="up-mid">' +
@@ -246,10 +212,8 @@ function renderUpgrade() {
           (maxed ? ' up-btn-max' : canBuy ? ' up-btn-ok' : '') + '"' +
           (maxed || !canBuy ? ' disabled' : '') +
           '>' + (maxed ? 'MAX' : 'G' + cost) + '</button>';
-
       row.querySelector('.up-btn').addEventListener('click', function() { doUpgrade(id); });
     }
-
     el.appendChild(row);
   });
 }
@@ -322,7 +286,6 @@ function renderBaseUpgrade() {
         (maxed ? ' up-btn-max' : canBuy ? ' up-btn-ok' : '') + '"' +
         (maxed || !canBuy ? ' disabled' : '') +
         '>' + (maxed ? 'MAX' : 'G' + cost) + '</button>';
-
     row.querySelector('.up-btn').addEventListener('click', function() {
       doBaseUpgrade(key, cost, d.max);
     });
@@ -340,17 +303,17 @@ function doBaseUpgrade(key, cost, max) {
   renderBaseUpgrade();
 }
 
-// ── Stage Selection ───────────────────────────────────
+// ── Stage Selection（STAGES_CONFIG を使用）────────────
 function openStage() {
-  renderStages();
+  renderStageSelect();
   showScreen('stage');
 }
 
-function renderStages() {
+function renderStageSelect() {
   var el = document.getElementById('stage-list');
   if (!el) return;
   el.innerHTML = '';
-  STAGES.forEach(function(s) {
+  STAGES_CONFIG.forEach(function(s) {
     var active = selectedStage && selectedStage.id === s.id;
     var card = document.createElement('div');
     card.className = 'st-card' + (active ? ' st-active' : '');
@@ -364,9 +327,10 @@ function renderStages() {
       '</div>' +
       '<div class="st-det">' +
         '<span>敵強化 ×' + s.enemyMult.toFixed(1) + '</span>' +
-        '<span>基礎報酬 💰' + s.baseReward + 'G + 残G</span>' +
+        '<span>拠点HP ' + s.enemyBaseHP + '</span>' +
+        '<span>基礎報酬 💰' + s.baseReward + 'G</span>' +
       '</div>';
-    card.addEventListener('click', function() { selectedStage = s; renderStages(); });
+    card.addEventListener('click', function() { selectedStage = s; renderStageSelect(); });
     el.appendChild(card);
   });
 }
@@ -382,10 +346,14 @@ function startBattle() {
 // ── Battle End Reward ─────────────────────────────────
 function awardBattleGold(win, leftoverGold) {
   var stg   = selectedStage || STAGES[0];
-  var base  = win ? stg.baseReward : Math.round(stg.baseReward * 0.3);
-  var bonus = Math.floor(leftoverGold);
+  
+  // 修正：winがtrue（勝利）なら報酬あり、false（敗北）なら一律0にする
+  var base  = win ? stg.baseReward : 0;
+  var bonus = win ? Math.floor(leftoverGold) : 0;
+  
   SAVE.gold += base + bonus;
   persistSave();
+  
   return { base: base, bonus: bonus, total: base + bonus };
 }
 

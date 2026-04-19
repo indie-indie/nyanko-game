@@ -115,18 +115,24 @@ function onCd(id) { return (g.unitCDs[id] || 0) > 0.05; }
 function renderOverlay(win, reward) {
   var ov = document.getElementById('ov');
   ov.style.display = 'flex';
+  
   document.getElementById('oico').textContent = win ? '🏆' : '💀';
   document.getElementById('otit').textContent = win ? '勝利！' : '敗北...';
   document.getElementById('otit').style.color = win ? '#fbbf24' : '#ef4444';
+  
   var mm = Math.floor(g.t / 60), ss = Math.floor(g.t % 60);
   var ts = (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+
+  // ── ここを修正 ──
   document.getElementById('osub').textContent = win
     ? '敵拠点を撃破！ クリアタイム: ' + ts
-    : '拠点が落ちた... 生存時間: ' + ts;
+    : '拠点を破壊されてしまった... 生存時間: ' + ts;
+  // ────────────────
 
   var rewardEl = document.getElementById('oreward');
   if (rewardEl) {
     if (reward) {
+      // 敗北時に報酬を0にする修正をhome.jsで行っていれば、ここも自動的に0Gと表示されます
       rewardEl.innerHTML =
         '基礎報酬　<b style="color:#fbbf24">+' + reward.base + ' G</b><br>' +
         '残ゴールド　<b style="color:#93c5fd">+' + reward.bonus + ' G</b><br>' +

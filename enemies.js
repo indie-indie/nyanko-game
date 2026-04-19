@@ -55,6 +55,40 @@ var ENEMY_UNITS = {
       type:'ground', targets:'ground',
       size:1.2, rew:30,
     },
+      brute: {
+        n:'ブルート', e:'🚛',
+        hp:380, dmg:26, spd:28, rng:50, ar:1.2,
+        type:'ground', targets:'ground',
+        size:1.3, rew:30
+      },
+    
+      runner: {
+        n:'ランナー', e:'🏃',
+        hp:60, dmg:12, spd:140, rng:45, ar:0.9,
+        type:'ground', targets:'ground',
+        size:0.8, rew:18
+      },
+    
+      longbow: {
+        n:'ロングボウ', e:'🔫',
+        hp:80, dmg:24, spd:40, rng:170, ar:1.4,
+        type:'ground', targets:'both',
+        size:1.0, rew:25
+      },
+    
+      striker: {
+        n:'ストライカー', e:'🥊',
+        hp:110, dmg:20, spd:75, rng:50, ar:0.5,
+        type:'ground', targets:'ground',
+        size:1.0, rew:22
+      },
+    
+      gargoyle: {
+        n:'ガーゴイル', e:'👾',
+        hp:260, dmg:30, spd:35, rng:55, ar:1.3,
+        type:'air', targets:'both',
+        size:1.2, rew:35
+      },
   garpy: {
     n:'ガーピー', e:'🦅',
     hp:55,  dmg:18, spd:85,  rng:55,  ar:1.0,
