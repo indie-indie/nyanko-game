@@ -3,11 +3,11 @@
 
 // ── 衝撃波設定（敵ユニットごと）────────────────────
 var SHOCKWAVE_CONFIG = {
-  ironbot: { trigger:'spawn', radius:300, force:400 },
-  warlock: { trigger:'interval', radius:150, force:200, interval:8 },
-  orc: { trigger:'death', radius:100, force:100, damage:10 },
-  brute: { trigger:'spawn', radius:400, force:250, damage:40 },
-  runner: { trigger:'interval', radius:80, force:80, interval:1, damage:5 }
+  ironbot: { trigger:'spawn',    radius:300, force:400,           damage:0  },
+  warlock: { trigger:'interval', radius:150, force:200, interval:8,damage:0  },
+  orc:     { trigger:'death',    radius:100, force:100,           damage:10 },
+  brute:   { trigger:'spawn',    radius:400, force:250,           damage:40 },
+  runner:  { trigger:'interval', radius:80,  force:80,  interval:1,damage:5  }
 };
 
 // ── ステージ設定（ウェーブ・緊急スポーン・拠点HP）──
@@ -21,9 +21,7 @@ var STAGES_CONFIG = [
     { till:60, pool:[{id:'slime',w:3}, {id:'goblin',w:5}, {id:'gremlin',w:8}], intv:[2.3,2.3] },
     { till:1e9, pool:[{id:'slime',w:1}, {id:'goblin',w:3}, {id:'gremlin',w:6}], intv:[2.3,2.3] }
   ],
-  emergencySpawns:[
-
-  ]
+  emergencySpawns:[]
 },
 {
   id:2, name:'ステージ 2', sub:'砂漠', icon:'🏜️',
@@ -79,58 +77,59 @@ var STAGES_CONFIG = [
 
 // ── Wave helpers ──────────────────────────────────
 function getPhase(waves, t) {
-for (var i = 0; i < waves.length; i++) {
-  if (t < waves[i].till) return waves[i];
-}
-return waves[waves.length - 1];
+  for (var i = 0; i < waves.length; i++) {
+    if (t < waves[i].till) return waves[i];
+  }
+  return waves[waves.length - 1];
 }
 
+// 【バグ修正】2つ目のループ変数を j に変更（var i の二重宣言を解消）
 function wRand(pool) {
-var s = 0;
-for (var i = 0; i < pool.length; i++) s += pool[i].w;
-var r = Math.random() * s;
-for (var i = 0; i < pool.length; i++) { r -= pool[i].w; if (r <= 0) return pool[i].id; }
-return pool[pool.length - 1].id;
+  var s = 0;
+  for (var i = 0; i < pool.length; i++) s += pool[i].w;
+  var r = Math.random() * s;
+  for (var j = 0; j < pool.length; j++) { r -= pool[j].w; if (r <= 0) return pool[j].id; }
+  return pool[pool.length - 1].id;
 }
 
 function updateWave(g, dt) {
-var ph = getPhase(g.stageWaves, g.t);
-var hpPct = (g.eb.hp / g.eb.max) * 100;
-// 緊急スポーントリガー
-for (var ei = 0; ei < g.emergencySpawns.length; ei++) {
-  var es = g.emergencySpawns[ei];
-  if (!es.triggered && hpPct <= es.hpPercent) {
-    es.triggered = true;
-    for (var si = 0; si < es.spawns.length; si++) {
-      for (var ci = 0; ci < es.spawns[si].count; ci++) {
-        spawnEnemy(g, es.spawns[si].id);
+  var ph = getPhase(g.stageWaves, g.t);
+  var hpPct = (g.eb.hp / g.eb.max) * 100;
+  // 緊急スポーントリガー
+  for (var ei = 0; ei < g.emergencySpawns.length; ei++) {
+    var es = g.emergencySpawns[ei];
+    if (!es.triggered && hpPct <= es.hpPercent) {
+      es.triggered = true;
+      for (var si = 0; si < es.spawns.length; si++) {
+        for (var ci = 0; ci < es.spawns[si].count; ci++) {
+          spawnEnemy(g, es.spawns[si].id);
+        }
       }
     }
   }
-}
-// 通常スポーン
-g.eTimer += dt;
-if (g.eTimer >= g.eNext) {
-  g.eTimer = 0;
-  g.eNext  = ph.intv[0] + Math.random() * (ph.intv[1] - ph.intv[0]);
-  spawnEnemy(g, wRand(ph.pool));
-}
+  // 通常スポーン
+  g.eTimer += dt;
+  if (g.eTimer >= g.eNext) {
+    g.eTimer = 0;
+    g.eNext  = ph.intv[0] + Math.random() * (ph.intv[1] - ph.intv[0]);
+    spawnEnemy(g, wRand(ph.pool));
+  }
 }
 
 function spawnEnemy(g, defId) {
-var d = ENEMY_UNITS[defId]; if (!d) return;
-var mult = g.stageMult || 1.0;
-var scaledD = {
-  n:d.n, e:d.e, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),
-  spd:d.spd, rng:d.rng, ar:d.ar, type:d.type, targets:d.targets,
-  size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1
-};
-var margin = 28;
-var x = margin + Math.random() * (W - margin * 2);
-var u = mkUnit(defId, 'enemy', x, ESY, scaledD);
-g.units.push(u);
-var swc = SHOCKWAVE_CONFIG[defId];
-if (swc && swc.trigger === 'spawn' && typeof triggerShockwave === 'function') {
-  triggerShockwave(g, x, ESY, swc);
-}
+  var d = ENEMY_UNITS[defId]; if (!d) return;
+  var mult = g.stageMult || 1.0;
+  var scaledD = {
+    n:d.n, e:d.e, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),
+    spd:d.spd, rng:d.rng, ar:d.ar, type:d.type, targets:d.targets,
+    size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1
+  };
+  var margin = 28;
+  var x = margin + Math.random() * (W - margin * 2);
+  var u = mkUnit(defId, 'enemy', x, ESY, scaledD);
+  g.units.push(u);
+  var swc = SHOCKWAVE_CONFIG[defId];
+  if (swc && swc.trigger === 'spawn' && typeof triggerShockwave === 'function') {
+    triggerShockwave(g, x, ESY, swc);
+  }
 }

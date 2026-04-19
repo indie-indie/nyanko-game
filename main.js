@@ -27,6 +27,9 @@ function startGame(stageConfig) {
   var pbHp      = 1000 + (base.hp     || 0) * 200;
   var pbAtk     = 20   + (base.atk    || 0) * 8;
 
+  // 【新機能】配置CDの短縮倍率を計算（Lv1=5%短縮、最大Lv10=50%短縮）
+  var cdMult = Math.max(0.5, 1.0 - (base.cdReduction || 0) * 0.05);
+
   var ebHp = stage.enemyBaseHP || 1000;
 
   g = {
@@ -43,7 +46,7 @@ function startGame(stageConfig) {
     eTimer: 0, eNext: 4.5,
     shake: 0,
     stageMult: stage.enemyMult || 1.0,
-    // ステージごとのウェーブ・緊急スポーンを注入
+    cdMult: cdMult,
     stageWaves: stage.waves || [],
     emergencySpawns: (stage.emergencySpawns || []).map(function(es) {
       return { hpPercent: es.hpPercent, spawns: es.spawns, triggered: false };
@@ -55,22 +58,37 @@ function startGame(stageConfig) {
   if (!canvas) {
     canvas = document.getElementById('gc');
     cx     = canvas.getContext('2d');
-    canvas.addEventListener('click',     handleCanvasClick);
+    canvas.addEventListener('click', handleCanvasClick);
     canvas.addEventListener('mousemove', handleMouseMove);
+
+    // ── タッチ操作：タップ・ドラッグどちらも touchend で配置 ──────
     canvas.addEventListener('touchstart', function(e) {
       e.preventDefault();
       var r = canvas.getBoundingClientRect();
       var t = e.touches[0];
       mouseX = (t.clientX - r.left) * (canvas.width  / r.width);
       mouseY = (t.clientY - r.top)  * (canvas.height / r.height);
-      handleCanvasClick(e);
+      // touchstart ではプレビュー更新のみ。配置は touchend で行う。
     }, { passive: false });
+
     canvas.addEventListener('touchmove', function(e) {
       e.preventDefault();
       var r = canvas.getBoundingClientRect();
       var t = e.touches[0];
       mouseX = (t.clientX - r.left) * (canvas.width  / r.width);
       mouseY = (t.clientY - r.top)  * (canvas.height / r.height);
+    }, { passive: false });
+
+    // touchend でユニットを配置（タップ・ドラッグ離し両対応）
+    canvas.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      if (e.changedTouches && e.changedTouches[0]) {
+        var r = canvas.getBoundingClientRect();
+        var t = e.changedTouches[0];
+        mouseX = (t.clientX - r.left) * (canvas.width  / r.width);
+        mouseY = (t.clientY - r.top)  * (canvas.height / r.height);
+      }
+      handleCanvasClick(e);
     }, { passive: false });
   }
 
@@ -111,7 +129,8 @@ function handleCanvasClick(e) {
   if (d.type === 'spell') {
     castSpell(id, x, y);
     g.gold -= d.cost;
-    g.unitCDs[id] = d.cd;
+    // 【バグ修正 + 新機能】cdMult を適用した配置CD
+    g.unitCDs[id] = d.cd * (g.cdMult || 1.0);
     g.selectedUnit = null;
     document.getElementById('phint').textContent = '';
     return;
@@ -125,7 +144,8 @@ function handleCanvasClick(e) {
   };
   g.units.push(mkUnit(id, 'player', x, y, scaledD));
   g.gold -= d.cost;
-  g.unitCDs[id] = d.cd;
+  // 【新機能】cdMult を適用した配置CD
+  g.unitCDs[id] = d.cd * (g.cdMult || 1.0);
   g.selectedUnit = null;
   document.getElementById('phint').textContent = '';
 }
@@ -164,20 +184,16 @@ function castSpell(id, x, y) {
 }
 
 // ── 衝撃波エンジン ─────────────────────────────────────
-// swc: { trigger, radius, force, [interval], [damage] }
 function triggerShockwave(g, x, y, swc) {
-  // ビジュアルリングをキューに追加
   g.shockwaves.push({ x:x, y:y, r:0, maxR:swc.radius, life:1.0, speed:400 });
-  // カメラシェイク
   g.shake = Math.max(g.shake, 20);
-  // プレイヤーユニット全員にノックバック＆ダメージ
   for (var i = 0; i < g.units.length; i++) {
     var u = g.units[i];
     if (u.team !== 'player' || u.dead) continue;
     var dx = u.x - x, dy = u.y - y;
     var dist = Math.hypot(dx, dy);
     if (dist >= swc.radius || dist < 1) continue;
-    var falloff = 1.0 - dist / swc.radius;  // 中心ほど強い
+    var falloff = 1.0 - dist / swc.radius;
     var nx = dx / dist, ny = dy / dist;
     u.knockVX += nx * swc.force * falloff;
     u.knockVY += ny * swc.force * falloff;
@@ -273,54 +289,46 @@ function update(dt) {
   }
 
   // プロジェクタイル更新
-// ── 弾（プロジェクタイル）の更新ループ ──
-for (var qi = 0; qi < g.projectiles.length; qi++) {
-  var proj = g.projectiles[qi];
-  // ターゲットが死亡（または拠点が破壊）していたら弾を消す
-  if (proj.tgt.dead) { proj.dead = true; continue; }
+  for (var qi = 0; qi < g.projectiles.length; qi++) {
+    var proj = g.projectiles[qi];
+    if (proj.tgt.dead) { proj.dead = true; continue; }
 
-  var pdx = proj.tgt.x - proj.x, pdy = proj.tgt.y - proj.y;
-  var pdst = Math.hypot(pdx, pdy), pmv = proj.spd * dt;
+    var pdx = proj.tgt.x - proj.x, pdy = proj.tgt.y - proj.y;
+    var pdst = Math.hypot(pdx, pdy), pmv = proj.spd * dt;
 
-  if (pdst <= pmv) {
-    // 🎯 ターゲットに到達した時の処理
-    if (proj.tgt.isBase) {
-      // 【重要】ターゲットが拠点(isBase)の場合
-      hitBase(proj.tgt.baseIdx, proj.dmg);
-      
-      // 範囲攻撃(area)の設定がある場合は、爆発エフェクトと周囲へのダメージ
-      if (proj.area) {
-        burst(proj.tgt.x, proj.tgt.y, '#f97316', 5);
-        for (var pk = 0; pk < g.units.length; pk++) {
-          var ae = g.units[pk];
-          if (ae.team !== proj.team && !ae.dead &&
-              Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) {
-            hitUnit(ae, proj.dmg);
+    if (pdst <= pmv) {
+      if (proj.tgt.isBase) {
+        hitBase(proj.tgt.baseIdx, proj.dmg);
+        if (proj.area) {
+          burst(proj.tgt.x, proj.tgt.y, '#f97316', 5);
+          for (var pk = 0; pk < g.units.length; pk++) {
+            var ae = g.units[pk];
+            if (ae.team !== proj.team && !ae.dead &&
+                Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) {
+              hitUnit(ae, proj.dmg);
+            }
           }
         }
-      }
-    } else {
-      // 通常のターゲット（ユニット）の場合
-      if (proj.area) {
-        for (var pk = 0; pk < g.units.length; pk++) {
-          var ae = g.units[pk];
-          if (ae.team !== proj.team && !ae.dead &&
-              Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) {
-            hitUnit(ae, proj.dmg);
-          }
-        }
-        burst(proj.tgt.x, proj.tgt.y, '#f97316', 5);
       } else {
-        hitUnit(proj.tgt, proj.dmg);
+        if (proj.area) {
+          for (var pk = 0; pk < g.units.length; pk++) {
+            var ae = g.units[pk];
+            if (ae.team !== proj.team && !ae.dead &&
+                Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) {
+              hitUnit(ae, proj.dmg);
+            }
+          }
+          burst(proj.tgt.x, proj.tgt.y, '#f97316', 5);
+        } else {
+          hitUnit(proj.tgt, proj.dmg);
+        }
       }
+      proj.dead = true;
+    } else {
+      proj.x += (pdx / pdst) * pmv;
+      proj.y += (pdy / pdst) * pmv;
     }
-    proj.dead = true; // 着弾したので弾を消去
-  } else {
-    // 移動処理
-    proj.x += (pdx / pdst) * pmv;
-    proj.y += (pdy / pdst) * pmv;
   }
-}
   g.projectiles = g.projectiles.filter(function(p) { return !p.dead; });
 
   // 衝撃波ビジュアル更新
@@ -338,29 +346,27 @@ for (var qi = 0; qi < g.projectiles.length; qi++) {
     u.flash = Math.max(0, u.flash - 1);
     u.cd    = Math.max(0, u.cd   - dt);
 
-    // ── ノックバック処理 ──
+    // ノックバック処理
     if (u.knockVX !== 0 || u.knockVY !== 0) {
       u.x += u.knockVX * dt;
       u.y += u.knockVY * dt;
-      // フィールド外に出ないようにクランプ
       u.x = Math.max(10, Math.min(W - 10, u.x));
       u.y = Math.max(ESY, Math.min(PBY, u.y));
-      // 急速減衰（0.3秒で停止相当）
       var decay = Math.pow(0.002, dt);
       u.knockVX *= decay;
       u.knockVY *= decay;
       if (Math.abs(u.knockVX) < 2) u.knockVX = 0;
       if (Math.abs(u.knockVY) < 2) u.knockVY = 0;
-      continue; // ノックバック中は他AIをスキップ
+      continue;
     }
 
-    // ── スタン処理 ──
+    // スタン処理
     if (u.stuntimer > 0) {
       u.stuntimer = Math.max(0, u.stuntimer - dt);
       continue;
     }
 
-    // ── 敵ユニット：定期衝撃波チェック ──
+    // 敵ユニット：定期衝撃波チェック
     if (u.team === 'enemy') {
       var swcE = (typeof SHOCKWAVE_CONFIG !== 'undefined') ? SHOCKWAVE_CONFIG[u.defId] : null;
       if (swcE && swcE.trigger === 'interval') {
@@ -377,25 +383,23 @@ for (var qi = 0; qi < g.projectiles.length; qi++) {
     var tBaseY   = (u.team === 'player') ? EBY : PBY;
     var distToBase = Math.hypot(tBaseX - u.x, tBaseY - u.y);
 
-// 拠点攻撃
-    // 拠点の当たり判定(55)を考慮し、遠距離キャラは自身の射程(u.rng)の距離から攻撃
+    // 拠点攻撃
     var attackRange = Math.max(55, u.rng);
     if (distToBase <= attackRange) {
-      if (u.cd <= 0) { 
-        u.cd = u.ar; 
+      if (u.cd <= 0) {
+        u.cd = u.ar;
         if (u.rng > 55) {
-          // 遠距離キャラの場合は、拠点用のダミーターゲットを作成して弾を飛ばす
           var pcol = u.team === 'player' ? '#93c5fd' : '#fca5a5';
           var dummyTgt = { x: tBaseX, y: tBaseY, dead: false, isBase: true, baseIdx: baseIdx };
           g.projectiles.push({ x:u.x, y:u.type==='air'?u.y-22:u.y,
             tgt:dummyTgt, dmg:u.dmg, spd:350, team:u.team, col:pcol, area:u.area });
         } else {
-          // 近接キャラは直接ダメージを与える
-          hitBase(baseIdx, u.dmg); 
+          hitBase(baseIdx, u.dmg);
         }
       }
       continue;
     }
+
     // ユニット攻撃
     var tgt = findTarget(u);
     if (tgt) {
@@ -452,6 +456,10 @@ for (var qi = 0; qi < g.projectiles.length; qi++) {
 function endGame(win) {
   if (!g.on) return;
   g.on = false;
+  // 【新機能】勝利時にクリアタイムを記録
+  if (win && typeof recordStageClear === 'function' && typeof selectedStage !== 'undefined' && selectedStage) {
+    recordStageClear(selectedStage.id, g.t);
+  }
   var reward = null;
   if (typeof awardBattleGold === 'function') reward = awardBattleGold(win, g.gold);
   renderOverlay(win, reward);
@@ -517,23 +525,20 @@ function render() {
   cx.beginPath(); cx.moveTo(0,BH/2); cx.lineTo(W,BH/2); cx.stroke();
   cx.setLineDash([]); cx.restore();
 
-  // ── 衝撃波リング描画 ──────────────────────────────
+  // 衝撃波リング描画
   for (var si = 0; si < g.shockwaves.length; si++) {
     var sw = g.shockwaves[si];
     cx.save();
-    // 外リング（オレンジ）
     cx.globalAlpha = sw.life * 0.85;
     cx.strokeStyle  = '#ff6600';
     cx.lineWidth    = 5 * sw.life;
     cx.beginPath(); cx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2); cx.stroke();
-    // 内リング（白）
     cx.globalAlpha  = sw.life * 0.4;
     cx.strokeStyle  = '#ffffff';
     cx.lineWidth    = 2 * sw.life;
     if (sw.r > 12) {
       cx.beginPath(); cx.arc(sw.x, sw.y, sw.r - 10, 0, Math.PI * 2); cx.stroke();
     }
-    // 塗りつぶし（薄いフラッシュ感）
     cx.globalAlpha  = sw.life * 0.06;
     cx.fillStyle    = '#ff4400';
     cx.beginPath(); cx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2); cx.fill();
