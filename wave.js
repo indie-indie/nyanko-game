@@ -107,6 +107,23 @@ function updateWave(g, dt) {
       }
     }
   }
+  // 時刻指定スポーン（各ウェーブの scheduled 配列）
+  if (g.scheduledTriggered) {
+    for (var wi = 0; wi < g.stageWaves.length; wi++) {
+      var wv = g.stageWaves[wi];
+      if (!wv.scheduled || !wv.scheduled.length) continue;
+      for (var sci = 0; sci < wv.scheduled.length; sci++) {
+        var sc = wv.scheduled[sci];
+        var key = 'sc_' + wi + '_' + sci;
+        if (!g.scheduledTriggered[key] && g.t >= sc.at) {
+          g.scheduledTriggered[key] = true;
+          for (var scc = 0; scc < sc.count; scc++) {
+            spawnEnemy(g, sc.id);
+          }
+        }
+      }
+    }
+  }
   // 通常スポーン
   g.eTimer += dt;
   if (g.eTimer >= g.eNext) {
@@ -122,7 +139,8 @@ function spawnEnemy(g, defId) {
   var scaledD = {
     n:d.n, e:d.e, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),
     spd:d.spd, rng:d.rng, ar:d.ar, type:d.type, targets:d.targets,
-    size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1
+    size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1,
+    skills: d.skills ? d.skills.slice() : null  // 【バグ修正】スキルを必ず引き継ぐ
   };
   var margin = 28;
   var x = margin + Math.random() * (W - margin * 2);

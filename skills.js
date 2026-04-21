@@ -19,6 +19,8 @@ var SKILL_EFFECTS = {
   thunder: function(attacker, target, skill, g, parts) {
     if (!target || target.dead) return;
     target.currentTarget = null;
+    // 0.2 秒スタン（既存スタンが長ければ上書きしない）
+    target.stuntimer = Math.max(target.stuntimer || 0, 0.2);
     // 青白い放電パーティクル
     for (var i = 0; i < 10; i++) {
       var a = (i / 10) * Math.PI * 2 + Math.random() * 0.5;

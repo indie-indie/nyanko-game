@@ -54,6 +54,7 @@ function startGame(stageConfig) {
     stageMult: stage.enemyMult || 1.0,
     cdMult: cdMult,
     stageWaves: stage.waves || [],
+    scheduledTriggered: {},
     emergencySpawns: (stage.emergencySpawns || []).map(function(es) {
       return { hpPercent: es.hpPercent, spawns: es.spawns, triggered: false };
     })
@@ -303,6 +304,15 @@ function update(dt) {
       proj.x += proj.vx * dt;
       proj.y += proj.vy * dt;
       proj.traveledDist += proj.spd * dt;
+
+      // 【バグ修正】拠点への貫通攻撃：位置が近づいたらダメージ判定
+      if (proj.tgt && proj.tgt.isBase) {
+        if (Math.hypot(proj.x - proj.tgt.x, proj.y - proj.tgt.y) <= 25) {
+          hitBase(proj.tgt.baseIdx, proj.dmg);
+          burst(proj.tgt.x, proj.tgt.y, proj.team === 'player' ? '#93c5fd' : '#fca5a5', 4);
+          proj.dead = true;
+        }
+      }
 
       for (var pk = 0; pk < g.units.length; pk++) {
         var ae = g.units[pk];

@@ -374,6 +374,17 @@ function doUnlock(id) {
 }
 
 // ── ステータスポップアップ ────────────────────────────
+// スキル表示用マップ
+var SKILL_DISPLAY = {
+  thunder: { ico:'⚡', label:'サンダー', desc:'命中時：タゲリセット＋0.2秒スタン' },
+  slow:    { ico:'🐢', label:'スロウ',   desc:'命中時：移動速度ダウン（最大4スタック）' },
+  poison:  { ico:'☠',  label:'毒',       desc:'命中時：3秒間継続ダメージ' },
+  heal:    { ico:'💚', label:'ヒール',   desc:'攻撃時：周囲の味方を回復' },
+  split:   { ico:'✂',  label:'分裂',     desc:'死亡時：2体に分裂して再生' },
+  freeze:  { ico:'🧊', label:'凍結',     desc:'命中時：一定時間行動不能' },
+  pierce:  { ico:'➡',  label:'貫通',     desc:'弾が射程全体を貫通してヒット' }
+};
+
 function showUnitStats(id) {
   var d  = PLAYER_UNITS[id];
   var lv = SAVE.levels[id] || 0;
@@ -407,6 +418,19 @@ function showUnitStats(id) {
       statRow('🏹', 'ターゲット',    targLabel) +
       (d.isBase ? statRow('🏯', '拠点認識', 'あり') : '');
   }
+
+  // スキル表示
+  if (d.skills && d.skills.length > 0) {
+    html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1a2a4a;"></div>';
+    for (var si = 0; si < d.skills.length; si++) {
+      var sk  = d.skills[si];
+      var sd  = SKILL_DISPLAY[sk.effect];
+      var ico = sd ? sd.ico  : '✨';
+      var dsc = sd ? sd.desc : sk.effect;
+      html += statRow(ico, 'スキル', dsc);
+    }
+  }
+
   rows.innerHTML = html;
   popup.classList.add('show');
 }

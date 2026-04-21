@@ -230,13 +230,13 @@ function mkStage(index){
 function mkDefaultWaves(stageIdx){
   const mul = 1 + stageIdx * 0.3;
   return [
-    {till:20,  intv:[3.5,4.5], pool:{slime:5,gremlin:3}},
-    {till:40,  intv:[3,4],     pool:{gremlin:4,goblin:3,shade:2}},
-    {till:60,  intv:[4,6],     pool:{goblin:2,orc:3,ironbot:2}},
-    {till:80,  intv:[3.5,5],   pool:{orc:2,garpy:5,lancer:3}},
-    {till:100, intv:[3,4.5],   pool:{ironbot:2,warlock:3,lancer:5}},
-    {till:120, intv:[2,3.5],   pool:{orc:4,ironbot:2,garpy:4,warlock:2,lancer:3}},
-    {till:999, intv:[1.5,2.5], pool:{ironbot:4,orc:4,warlock:3,garpy:5,lancer:4}},
+    {till:20,  intv:[3.5,4.5], pool:{slime:5,gremlin:3},       scheduled:[]},
+    {till:40,  intv:[3,4],     pool:{gremlin:4,goblin:3,shade:2},scheduled:[]},
+    {till:60,  intv:[4,6],     pool:{goblin:2,orc:3,ironbot:2},  scheduled:[]},
+    {till:80,  intv:[3.5,5],   pool:{orc:2,garpy:5,lancer:3},   scheduled:[]},
+    {till:100, intv:[3,4.5],   pool:{ironbot:2,warlock:3,lancer:5},scheduled:[]},
+    {till:120, intv:[2,3.5],   pool:{orc:4,ironbot:2,garpy:4,warlock:2,lancer:3},scheduled:[]},
+    {till:999, intv:[1.5,2.5], pool:{ironbot:4,orc:4,warlock:3,garpy:5,lancer:4},scheduled:[]},
   ];
 }
 
@@ -426,10 +426,31 @@ function renderWaveEditor(){
   const st=curStage(); if(!st){el.innerHTML='';return}
   const w=st.waves[S.selWave];
   if(!w){el.innerHTML='<div class="empty-hint">ウェーブを選択してください</div>';return}
+  if(!w.scheduled) w.scheduled=[];  // 旧データ互換
   const isLast=S.selWave===st.waves.length-1;
   const totalW=Object.values(w.pool).reduce((s,v)=>s+v,0);
   const rbar=totalW>0?EL.filter(e=>w.pool[e.id]>0).map(e=>`<div class="rseg" style="width:${(w.pool[e.id]/totalW*100).toFixed(1)}%;background:${e.c}"></div>`).join(''):'';
   const si=S.selStage, wi=S.selWave;
+
+  const schRows = w.scheduled.length > 0
+    ? w.scheduled.map((sc,sci)=>{
+        const ef=EL.find(e=>e.id===sc.id);
+        return `<div style="display:flex;align-items:center;gap:7px;background:#0a1628;border:1px solid #1a2a4a;border-radius:6px;padding:5px 9px;margin-bottom:5px;">
+          <span style="font-size:14px">🕐</span>
+          <input type="number" value="${sc.at}" min="0" max="9999" step="1" style="width:60px" title="発動する秒数（ゲーム開始から）"
+            oninput="updScheduledAt(${si},${wi},${sci},+this.value)">
+          <span style="font-size:10px;color:#475569">秒目に</span>
+          <select onchange="updScheduledId(${si},${wi},${sci},this.value)" style="flex:1">
+            ${EL.map(e=>`<option value="${e.id}" ${e.id===sc.id?'selected':''}>${e.e} ${e.n}</option>`).join('')}
+          </select>
+          <input type="number" value="${sc.count}" min="1" max="99" style="width:50px" title="出現体数"
+            oninput="updScheduledCount(${si},${wi},${sci},+this.value)">
+          <span style="font-size:10px;color:#475569">体</span>
+          <button class="btn btn-r" style="padding:2px 7px;font-size:10px" onclick="rmScheduled(${si},${wi},${sci})">✕</button>
+        </div>`;
+      }).join('')
+    : `<div style="color:#334155;font-size:11px;padding:4px 0;">まだ設定なし</div>`;
+
   el.innerHTML=`
   <div class="sec">
     <div class="sec-t">W${wi+1} — 基本設定 <span class="stage-badge">${st.icon} ${st.name}</span></div>
@@ -469,16 +490,52 @@ function renderWaveEditor(){
         </div>`;
       }).join('')}
     </div>
+  </div>
+  <div class="sec" style="border-color:#1a3a2a">
+    <div class="sec-t" style="color:#4ade80">🕐 時刻指定スポーン
+      <span style="font-weight:400;color:#475569;text-transform:none;letter-spacing:0;font-size:10px;margin-left:6px">ゲーム開始から〇秒目に強制スポーン</span>
+    </div>
+    <div>${schRows}</div>
+    <div style="display:flex;gap:7px;align-items:center;margin-top:9px;padding-top:9px;border-top:1px solid #1a2a4a;flex-wrap:wrap">
+      <span style="font-size:11px;color:#64748b">追加：</span>
+      <input type="number" id="sch-at-${si}-${wi}" value="30" min="0" max="9999" step="1" style="width:60px" placeholder="秒">
+      <span style="font-size:10px;color:#475569">秒目に</span>
+      <select id="sch-id-${si}-${wi}">
+        ${EL.map(e=>`<option value="${e.id}">${e.e} ${e.n}</option>`).join('')}
+      </select>
+      <input type="number" id="sch-cnt-${si}-${wi}" value="1" min="1" max="99" style="width:50px">
+      <span style="font-size:10px;color:#475569">体</span>
+      <button class="btn btn-g" style="padding:3px 10px;font-size:11px" onclick="addScheduled(${si},${wi})">＋ 追加</button>
+    </div>
   </div>`;
 }
 
 function selWave(i,e){if(e&&e.target.tagName==='BUTTON')return;S.selWave=i;renderWaveList();renderWaveEditor()}
+// 時刻指定スポーン CRUD
+function addScheduled(si,wi){
+  const w=S.stages[si].waves[wi];
+  if(!w.scheduled) w.scheduled=[];
+  const atEl=document.getElementById(`sch-at-${si}-${wi}`);
+  const idEl=document.getElementById(`sch-id-${si}-${wi}`);
+  const cntEl=document.getElementById(`sch-cnt-${si}-${wi}`);
+  if(!atEl||!idEl||!cntEl)return;
+  const at=Math.max(0,+atEl.value||0);
+  const id=idEl.value;
+  const count=Math.max(1,+cntEl.value||1);
+  w.scheduled.push({at,id,count});
+  w.scheduled.sort((a,b)=>a.at-b.at);
+  renderWaveEditor();
+}
+function rmScheduled(si,wi,sci){S.stages[si].waves[wi].scheduled.splice(sci,1);renderWaveEditor()}
+function updScheduledAt(si,wi,sci,v){S.stages[si].waves[wi].scheduled[sci].at=v;}
+function updScheduledId(si,wi,sci,v){S.stages[si].waves[wi].scheduled[sci].id=v;}
+function updScheduledCount(si,wi,sci,v){S.stages[si].waves[wi].scheduled[sci].count=Math.max(1,v);}
 function addWave(){
   const st=curStage(); if(!st)return;
   const n=st.waves.length;
   const ins=n>0&&st.waves[n-1].till>=999?n-1:n;
   const prevTill=ins>0?st.waves[ins-1].till:0;
-  st.waves.splice(ins,0,{till:prevTill+20,intv:[2.5,4],pool:{gremlin:3}});
+  st.waves.splice(ins,0,{till:prevTill+20,intv:[2.5,4],pool:{gremlin:3},scheduled:[]});
   S.selWave=ins;renderWaves();
 }
 function rmWave(i){
@@ -672,7 +729,11 @@ function genWaveJS(){
     const wavesStr=st.waves.map((w,wi)=>{
       const isLast=wi===st.waves.length-1;
       const pool=Object.entries(w.pool).filter(([,v])=>v>0).map(([id,v])=>`{id:'${id}',w:${v}}`).join(', ');
-      return `      { till:${isLast?'1e9':w.till}, pool:[${pool}], intv:[${w.intv[0]},${w.intv[1]}] }`;
+      const sch=(w.scheduled||[]).filter(s=>s.id&&s.count>0);
+      const schPart=sch.length>0
+        ? `, scheduled:[${sch.map(s=>`{at:${s.at},id:'${s.id}',count:${s.count}}`).join(', ')}]`
+        : '';
+      return `      { till:${isLast?'1e9':w.till}, pool:[${pool}], intv:[${w.intv[0]},${w.intv[1]}]${schPart} }`;
     }).join(',\n');
     const esStr=st.emergencySpawns.sort((a,b)=>b.hpPercent-a.hpPercent).map(es=>{
       const spawnsStr=es.spawns.map(sp=>`{id:'${sp.id}',count:${sp.count}}`).join(', ');
@@ -724,6 +785,23 @@ function genWaveJS(){
     `      }`,
     `    }`,
     `  }`,
+    `  // 時刻指定スポーン（各ウェーブの scheduled 配列）`,
+    `  if (g.scheduledTriggered) {`,
+    `    for (var wi = 0; wi < g.stageWaves.length; wi++) {`,
+    `      var wv = g.stageWaves[wi];`,
+    `      if (!wv.scheduled || !wv.scheduled.length) continue;`,
+    `      for (var sci = 0; sci < wv.scheduled.length; sci++) {`,
+    `        var sc = wv.scheduled[sci];`,
+    `        var key = 'sc_' + wi + '_' + sci;`,
+    `        if (!g.scheduledTriggered[key] && g.t >= sc.at) {`,
+    `          g.scheduledTriggered[key] = true;`,
+    `          for (var scc = 0; scc < sc.count; scc++) {`,
+    `            spawnEnemy(g, sc.id);`,
+    `          }`,
+    `        }`,
+    `      }`,
+    `    }`,
+    `  }`,
     `  // 通常スポーン`,
     `  g.eTimer += dt;`,
     `  if (g.eTimer >= g.eNext) {`,
@@ -739,7 +817,8 @@ function genWaveJS(){
     `  var scaledD = {`,
     `    n:d.n, e:d.e, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),`,
     `    spd:d.spd, rng:d.rng, ar:d.ar, type:d.type, targets:d.targets,`,
-    `    size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1`,
+    `    size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1,`,
+    `    skills: d.skills ? d.skills.slice() : null`,
     `  };`,
     `  var margin = 28;`,
     `  var x = margin + Math.random() * (W - margin * 2);`,
