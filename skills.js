@@ -1,7 +1,7 @@
 // skills.js — 特殊効果・プロジェクタイル生成・衝撃波・状態異常の一元管理
 
 // ── 重攻撃の閾値（ar がこれ以上のユニットは重攻撃ビジュアル）──
-var HEAVY_AR_THRESHOLD = 1.5;
+var HEAVY_AR_THRESHOLD = 4.0;
 
 // ═══════════════════════════════════════════════════════
 //  SKILL_EFFECTS — 各スキル効果の処理関数
@@ -124,8 +124,8 @@ var SKILL_EFFECTS = {
         n      : target.nm + '（分）',
         e      : target.e,
         img    : target.img    || null,
-        hp     : Math.max(1, Math.round(target.mhp * 0.45)),
-        dmg    : Math.max(1, Math.round(target.dmg * 0.65)),
+        hp     : Math.max(1, Math.round(target.mhp * 0.40)),
+        dmg    : Math.max(1, Math.round(target.dmg * 0.55)),
         spd    : target.baseSPD ? target.baseSPD * 1.2 : target.spd * 1.2,
         rng    : target.rng,
         ar     : target.ar,

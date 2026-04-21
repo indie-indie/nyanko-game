@@ -394,14 +394,15 @@ function showUnitStats(id) {
       statRow('💰', 'コスト',        d.cost + ' G') +
       statRow('💥', 'ダメージ',       Math.round(d.dmg * m)) +
       statRow('🎯', '効果範囲',       d.area) +
-      statRow('⏱', 'クールタイム',   d.cd + ' s');
+      statRow('⏰', 'クールタイム',   d.cd + ' s');
   } else {
     var targLabel = { ground:'地上のみ', air:'飛行のみ', both:'両方', base:'拠点のみ' }[d.targets] || d.targets;
     html +=
       statRow('💰', 'コスト',        d.cost + ' G') +
       statRow('❤️', 'HP',            Math.round(d.hp  * m)) +
-      statRow('⚔', 'ATK',           Math.round(d.dmg * m)) +
+      statRow('🗡️', 'ATK',           Math.round(d.dmg * m)) +
       statRow('🎯', '攻撃範囲',      d.rng) +
+      statRow('⌛', '攻撃間隔',      d.ar) +
       statRow('💨', '移動速度',      d.spd) +
       statRow('🏹', 'ターゲット',    targLabel) +
       (d.isBase ? statRow('🏯', '拠点認識', 'あり') : '');
@@ -424,9 +425,9 @@ function closeStatPopup() {
 // ── Base Upgrade ──────────────────────────────────────
 var BASE_UPGRADES = {
   regen:       { n:'ゴールド回復', e:'⏳', base:5,    step:0.5  },
-  maxGold:     { n:'ゴールド上限', e:'💰', base:100,  step:20   },
+  maxGold:     { n:'ゴールド上限', e:'💰', base:100,  step:50   },
   hp:          { n:'拠点HP',       e:'🏯', base:1000, step:200  },
-  atk:         { n:'拠点攻撃力',   e:'🏹', base:20,   step:8    },
+  atk:         { n:'拠点攻撃力',   e:'🏹', base:20,   step:4    },
   cdReduction: { n:'配置CD短縮',   e:'⚡', base:0,    step:5, suffix:'%' }
 };
 
