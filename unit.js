@@ -45,7 +45,7 @@ var PLAYER_UNITS = {
     type:'ground', targets:'both', cd:1.0, size:0.9, rew:1, zone:'own', unlockCost:0,
   },
   golem: {
-    n:'ゴーレム', e:'🛡️', img:'image/golem', cost:60, hp:500, dmg:15, spd:25, rng:30, ar:1.5,
+    n:'ゴーレム', e:'🛡️', img:'nyanko-game/image/golem', cost:60, hp:500, dmg:15, spd:25, rng:30, ar:1.5,
     type:'ground', targets:'ground', isBase:true, cd:2.5, size:1.5, rew:2, zone:'own', unlockCost:250
   },
   sniper: {
