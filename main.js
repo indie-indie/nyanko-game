@@ -1,8 +1,19 @@
-// main.js — Game loop, state, update, render, input (衝撃波システム対応)
+// main.js — Game loop, state, update, render, input
 
 var g, uid_, parts, raf_, prev_;
 var mouseX = -1, mouseY = -1;
 var canvas, cx;
+
+// ── 画像キャッシュ ─────────────────────────────────────
+var IMG_CACHE = {};
+function getImg(src) {
+  if (!IMG_CACHE[src]) {
+    var img = new Image();
+    img.src = src;
+    IMG_CACHE[src] = img;
+  }
+  return IMG_CACHE[src];
+}
 
 // ── 配置ゾーンY範囲 ───────────────────────────────────
 function getPlacementYRange(d) {
@@ -22,13 +33,11 @@ function startGame(stageConfig) {
 
   var stage = stageConfig || STAGES_CONFIG[0];
   var base  = SAVE.baseLevels || {};
-  var initRegen = 5   + (base.regen   || 0) * 0.5;
-  var initMaxG  = 100 + (base.maxGold || 0) * 20;
-  var pbHp      = 1000 + (base.hp     || 0) * 200;
-  var pbAtk     = 20   + (base.atk    || 0) * 8;
-
-  // 【新機能】配置CDの短縮倍率を計算（Lv1=5%短縮、最大Lv10=50%短縮）
-  var cdMult = Math.max(0.5, 1.0 - (base.cdReduction || 0) * 0.05);
+  var initRegen = 5   + (base.regen       || 0) * 0.5;
+  var initMaxG  = 100 + (base.maxGold     || 0) * 20;
+  var pbHp      = 1000 + (base.hp         || 0) * 200;
+  var pbAtk     = 20   + (base.atk        || 0) * 8;
+  var cdMult    = Math.max(0.5, 1.0 - (base.cdReduction || 0) * 0.05);
 
   var ebHp = stage.enemyBaseHP || 1000;
 
@@ -53,7 +62,9 @@ function startGame(stageConfig) {
     })
   };
 
-  PLAYER_DECK.forEach(function(id) { g.unitCDs[id] = 0; });
+  PLAYER_DECK.forEach(function(id) {
+    if (id) g.unitCDs[id] = 0;
+  });
 
   if (!canvas) {
     canvas = document.getElementById('gc');
@@ -61,14 +72,12 @@ function startGame(stageConfig) {
     canvas.addEventListener('click', handleCanvasClick);
     canvas.addEventListener('mousemove', handleMouseMove);
 
-    // ── タッチ操作：タップ・ドラッグどちらも touchend で配置 ──────
     canvas.addEventListener('touchstart', function(e) {
       e.preventDefault();
       var r = canvas.getBoundingClientRect();
       var t = e.touches[0];
       mouseX = (t.clientX - r.left) * (canvas.width  / r.width);
       mouseY = (t.clientY - r.top)  * (canvas.height / r.height);
-      // touchstart ではプレビュー更新のみ。配置は touchend で行う。
     }, { passive: false });
 
     canvas.addEventListener('touchmove', function(e) {
@@ -79,7 +88,7 @@ function startGame(stageConfig) {
       mouseY = (t.clientY - r.top)  * (canvas.height / r.height);
     }, { passive: false });
 
-    // touchend でユニットを配置（タップ・ドラッグ離し両対応）
+    // touchend で配置（タップ・ドラッグ離しどちらも対応）
     canvas.addEventListener('touchend', function(e) {
       e.preventDefault();
       if (e.changedTouches && e.changedTouches[0]) {
@@ -129,7 +138,6 @@ function handleCanvasClick(e) {
   if (d.type === 'spell') {
     castSpell(id, x, y);
     g.gold -= d.cost;
-    // 【バグ修正 + 新機能】cdMult を適用した配置CD
     g.unitCDs[id] = d.cd * (g.cdMult || 1.0);
     g.selectedUnit = null;
     document.getElementById('phint').textContent = '';
@@ -138,13 +146,12 @@ function handleCanvasClick(e) {
 
   var mult    = (typeof getMultiplier === 'function') ? getMultiplier(id) : 1.0;
   var scaledD = {
-    n:d.n, e:d.e, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),
+    n:d.n, e:d.e, img:d.img||null, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),
     spd:d.spd, rng:d.rng, ar:d.ar, type:d.type, targets:d.targets,
-    size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1, cd:d.cd
+    isBase:d.isBase||false, size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1, cd:d.cd
   };
   g.units.push(mkUnit(id, 'player', x, y, scaledD));
   g.gold -= d.cost;
-  // 【新機能】cdMult を適用した配置CD
   g.unitCDs[id] = d.cd * (g.cdMult || 1.0);
   g.selectedUnit = null;
   document.getElementById('phint').textContent = '';
@@ -202,18 +209,37 @@ function triggerShockwave(g, x, y, swc) {
 }
 
 // ── Combat helpers ────────────────────────────────────
+// targets:'base' のユニット：まず射程内の isBase 敵を探す。なければ null（→拠点攻撃へ）。
+// それ以外のユニット：type マッチする最近敵を探す。isBase 敵は type 問わず対象に含む。
 function findTarget(u) {
-  if (u.targets === 'base') return null;
+  if (u.targets === 'base') {
+    // isBase:true の敵ユニットのみを対象とする
+    var best = null, bd = Infinity;
+    for (var i = 0; i < g.units.length; i++) {
+      var e = g.units[i];
+      if (e.team === u.team || e.dead || !e.isBase) continue;
+      var d1 = Math.hypot(u.x - e.x, u.y - e.y);
+      if (d1 < u.rng && d1 < bd) { bd = d1; best = e; }
+    }
+    u.currentTarget = best;
+    return best;
+  }
+
+  // 既存ターゲットが有効ならそのまま使う（isBase 敵はタイプ問わず許容）
   if (u.currentTarget && !u.currentTarget.dead) {
     var d0 = Math.hypot(u.x - u.currentTarget.x, u.y - u.currentTarget.y);
-    if (d0 < u.rng && (u.targets === 'both' || u.targets === u.currentTarget.type))
-      return u.currentTarget;
+    var typeOk = u.targets === 'both'
+      || u.targets === u.currentTarget.type
+      || u.currentTarget.isBase;
+    if (d0 < u.rng && typeOk) return u.currentTarget;
   }
+
   var best = null, bd = Infinity;
   for (var i = 0; i < g.units.length; i++) {
     var e = g.units[i];
     if (e.team === u.team || e.dead) continue;
-    if (u.targets !== 'both' && u.targets !== e.type) continue;
+    // isBase 敵はタイプ問わず誰でも攻撃可。それ以外は通常の type チェック。
+    if (!e.isBase && u.targets !== 'both' && u.targets !== e.type) continue;
     var d1 = Math.hypot(u.x - e.x, u.y - e.y);
     if (d1 < u.rng && d1 < bd) { bd = d1; best = e; }
   }
@@ -230,7 +256,6 @@ function hitUnit(tgt, amt) {
     burst(tgt.x, tgt.y, tgt.team === 'player' ? '#3b82f6' : '#ef4444', 7);
     if (tgt.team === 'enemy') {
       g.gold = Math.min(g.gold + tgt.rew, g.maxGold);
-      // 撃破時衝撃波
       var swc = (typeof SHOCKWAVE_CONFIG !== 'undefined') ? SHOCKWAVE_CONFIG[tgt.defId] : null;
       if (swc && swc.trigger === 'death') triggerShockwave(g, tgt.x, tgt.y, swc);
     }
@@ -261,7 +286,7 @@ function update(dt) {
   g.shake = Math.max(0, g.shake - 1);
 
   PLAYER_DECK.forEach(function(id) {
-    if (g.unitCDs[id] > 0) g.unitCDs[id] = Math.max(0, g.unitCDs[id] - dt);
+    if (id && g.unitCDs[id] > 0) g.unitCDs[id] = Math.max(0, g.unitCDs[id] - dt);
   });
   if (g.selectedUnit && onCd(g.selectedUnit)) {
     g.selectedUnit = null;
@@ -270,7 +295,6 @@ function update(dt) {
 
   updateWave(g, dt);
 
-  // 自拠点の自動攻撃
   g.pb.cd = Math.max(0, g.pb.cd - dt);
   if (g.pb.cd <= 0) {
     var bestE = null, bestED = Infinity;
@@ -292,10 +316,8 @@ function update(dt) {
   for (var qi = 0; qi < g.projectiles.length; qi++) {
     var proj = g.projectiles[qi];
     if (proj.tgt.dead) { proj.dead = true; continue; }
-
     var pdx = proj.tgt.x - proj.x, pdy = proj.tgt.y - proj.y;
     var pdst = Math.hypot(pdx, pdy), pmv = proj.spd * dt;
-
     if (pdst <= pmv) {
       if (proj.tgt.isBase) {
         hitBase(proj.tgt.baseIdx, proj.dmg);
@@ -304,9 +326,7 @@ function update(dt) {
           for (var pk = 0; pk < g.units.length; pk++) {
             var ae = g.units[pk];
             if (ae.team !== proj.team && !ae.dead &&
-                Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) {
-              hitUnit(ae, proj.dmg);
-            }
+                Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) hitUnit(ae, proj.dmg);
           }
         }
       } else {
@@ -314,9 +334,7 @@ function update(dt) {
           for (var pk = 0; pk < g.units.length; pk++) {
             var ae = g.units[pk];
             if (ae.team !== proj.team && !ae.dead &&
-                Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) {
-              hitUnit(ae, proj.dmg);
-            }
+                Math.hypot(ae.x - proj.tgt.x, ae.y - proj.tgt.y) < proj.area) hitUnit(ae, proj.dmg);
           }
           burst(proj.tgt.x, proj.tgt.y, '#f97316', 5);
         } else {
@@ -346,7 +364,7 @@ function update(dt) {
     u.flash = Math.max(0, u.flash - 1);
     u.cd    = Math.max(0, u.cd   - dt);
 
-    // ノックバック処理
+    // ノックバック
     if (u.knockVX !== 0 || u.knockVY !== 0) {
       u.x += u.knockVX * dt;
       u.y += u.knockVY * dt;
@@ -360,13 +378,13 @@ function update(dt) {
       continue;
     }
 
-    // スタン処理
+    // スタン
     if (u.stuntimer > 0) {
       u.stuntimer = Math.max(0, u.stuntimer - dt);
       continue;
     }
 
-    // 敵ユニット：定期衝撃波チェック
+    // 敵ユニット：定期衝撃波
     if (u.team === 'enemy') {
       var swcE = (typeof SHOCKWAVE_CONFIG !== 'undefined') ? SHOCKWAVE_CONFIG[u.defId] : null;
       if (swcE && swcE.trigger === 'interval') {
@@ -378,9 +396,9 @@ function update(dt) {
       }
     }
 
-    var baseIdx  = (u.team === 'player') ? 'enemy' : 'player';
-    var tBaseX   = W / 2;
-    var tBaseY   = (u.team === 'player') ? EBY : PBY;
+    var baseIdx    = (u.team === 'player') ? 'enemy' : 'player';
+    var tBaseX     = W / 2;
+    var tBaseY     = (u.team === 'player') ? EBY : PBY;
     var distToBase = Math.hypot(tBaseX - u.x, tBaseY - u.y);
 
     // 拠点攻撃
@@ -414,7 +432,7 @@ function update(dt) {
             for (var ak = 0; ak < g.units.length; ak++) {
               var ae2 = g.units[ak];
               if (ae2.team!==u.team && !ae2.dead &&
-                  (u.targets==='both'||u.targets===ae2.type) &&
+                  (u.targets==='both'||u.targets===ae2.type||ae2.isBase) &&
                   Math.hypot(ae2.x-tgt.x,ae2.y-tgt.y)<u.area) hitUnit(ae2,u.dmg);
             }
             burst(tgt.x, tgt.y, '#f97316', 5);
@@ -426,12 +444,23 @@ function update(dt) {
 
     // 移動
     var mtX = tBaseX, mtY = tBaseY;
-    if (u.targets !== 'base') {
+    if (u.targets === 'base') {
+      // targets:'base' ユニット：isBase 敵が近ければそちらへ向かう
+      var nearBase = null, nearBaseD = distToBase;
+      for (var j = 0; j < g.units.length; j++) {
+        var ne = g.units[j];
+        if (ne.team === u.team || ne.dead || !ne.isBase) continue;
+        var nd = Math.hypot(ne.x - u.x, ne.y - u.y);
+        if (nd < nearBaseD) { nearBaseD = nd; nearBase = ne; }
+      }
+      if (nearBase) { mtX = nearBase.x; mtY = nearBase.y; }
+    } else {
+      // 通常ユニット：最近の敵に向かう（isBase 敵はタイプ問わず追う）
       var nearE = null, nearD = Infinity;
       for (var j = 0; j < g.units.length; j++) {
         var ne = g.units[j];
         if (ne.team===u.team||ne.dead) continue;
-        if (u.targets!=='both'&&u.targets!==ne.type) continue;
+        if (!ne.isBase && u.targets!=='both' && u.targets!==ne.type) continue;
         var nd = Math.hypot(ne.x-u.x, ne.y-u.y);
         if (nd < nearD) { nearD=nd; nearE=ne; }
       }
@@ -456,7 +485,6 @@ function update(dt) {
 function endGame(win) {
   if (!g.on) return;
   g.on = false;
-  // 【新機能】勝利時にクリアタイムを記録
   if (win && typeof recordStageClear === 'function' && typeof selectedStage !== 'undefined' && selectedStage) {
     recordStageClear(selectedStage.id, g.t);
   }
@@ -488,6 +516,23 @@ function drawBase(team, x, y, base) {
   cx.fillText(Math.ceil(base.hp)+' / '+base.max, x, by+bh/2);
 }
 
+// ユニットアイコンを描画（img があれば画像、なければ絵文字）
+function drawUnitIcon(u, x, y) {
+  var sz = Math.round(25 * u.size);
+  if (u.img) {
+    var img = getImg(u.img);
+    if (img.complete && img.naturalWidth > 0) {
+      var hw = sz * 0.9;
+      cx.drawImage(img, x - hw, y - hw, hw * 2, hw * 2);
+      return;
+    }
+  }
+  cx.font = sz + 'px serif';
+  cx.textAlign = 'center';
+  cx.textBaseline = 'middle';
+  cx.fillText(u.e, x, y);
+}
+
 function drawUnit(u) {
   var drawY = u.type==='air' ? u.y-22 : u.y;
   var alpha = (u.flash>0&&u.flash%2===0) ? 0.2 : 1;
@@ -495,8 +540,7 @@ function drawUnit(u) {
   cx.fillStyle='rgba(0,0,0,1)';
   cx.beginPath(); cx.ellipse(u.x,(u.type==='air'?u.y+4:u.y+14),14*u.size,5*u.size,0,0,Math.PI*2); cx.fill();
   cx.globalAlpha=alpha;
-  cx.font=Math.round(25*u.size)+'px serif'; cx.textAlign='center'; cx.textBaseline='middle';
-  cx.fillText(u.e, u.x, drawY);
+  drawUnitIcon(u, u.x, drawY);
   cx.globalAlpha=1;
   var bw=Math.max(24,28*u.size), bh=4, bx=u.x-bw/2, by=drawY-Math.max(19,22*u.size);
   cx.fillStyle='#0c1627'; rrect(bx,by,bw,bh,2); cx.fill();
@@ -504,6 +548,8 @@ function drawUnit(u) {
   if(hr>0){ cx.fillStyle=hr>.5?'#22c55e':hr>.25?'#f59e0b':'#ef4444'; rrect(bx,by,bw*hr,bh,2); cx.fill(); }
   if(u.type==='air'){ cx.fillStyle='#93c5fd'; cx.font='8px sans-serif'; cx.textAlign='center'; cx.textBaseline='middle'; cx.fillText('✈',u.x,drawY+Math.round(17*u.size)); }
   if(u.stuntimer>0){ cx.fillStyle='#00ccff'; cx.font='11px sans-serif'; cx.textAlign='center'; cx.textBaseline='middle'; cx.fillText('❄',u.x,by-7); }
+  // isBase ユニット：金枠でアイコン表示
+  if(u.isBase){ cx.strokeStyle='#fbbf24'; cx.lineWidth=1.5; cx.globalAlpha=0.6; cx.beginPath(); cx.arc(u.x,drawY,Math.max(16,14*u.size),0,Math.PI*2); cx.stroke(); cx.globalAlpha=1; }
   cx.fillStyle=u.team==='player'?'#60a5fa':'#f87171';
   cx.beginPath(); cx.arc(u.x,u.y+Math.round(19*u.size),2.5,0,Math.PI*2); cx.fill();
 }
@@ -525,22 +571,15 @@ function render() {
   cx.beginPath(); cx.moveTo(0,BH/2); cx.lineTo(W,BH/2); cx.stroke();
   cx.setLineDash([]); cx.restore();
 
-  // 衝撃波リング描画
+  // 衝撃波リング
   for (var si = 0; si < g.shockwaves.length; si++) {
     var sw = g.shockwaves[si];
     cx.save();
-    cx.globalAlpha = sw.life * 0.85;
-    cx.strokeStyle  = '#ff6600';
-    cx.lineWidth    = 5 * sw.life;
+    cx.globalAlpha = sw.life * 0.85; cx.strokeStyle = '#ff6600'; cx.lineWidth = 5 * sw.life;
     cx.beginPath(); cx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2); cx.stroke();
-    cx.globalAlpha  = sw.life * 0.4;
-    cx.strokeStyle  = '#ffffff';
-    cx.lineWidth    = 2 * sw.life;
-    if (sw.r > 12) {
-      cx.beginPath(); cx.arc(sw.x, sw.y, sw.r - 10, 0, Math.PI * 2); cx.stroke();
-    }
-    cx.globalAlpha  = sw.life * 0.06;
-    cx.fillStyle    = '#ff4400';
+    cx.globalAlpha = sw.life * 0.4; cx.strokeStyle = '#ffffff'; cx.lineWidth = 2 * sw.life;
+    if (sw.r > 12) { cx.beginPath(); cx.arc(sw.x, sw.y, sw.r - 10, 0, Math.PI * 2); cx.stroke(); }
+    cx.globalAlpha = sw.life * 0.06; cx.fillStyle = '#ff4400';
     cx.beginPath(); cx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2); cx.fill();
     cx.restore();
   }

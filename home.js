@@ -1,6 +1,5 @@
 // home.js — Screen manager, persistent save, deck builder, upgrade, stage select
 
-// 【バグ修正】selectedStage を明示的に宣言
 var selectedStage;
 
 var INITIAL_UNLOCKED = ['nyanko', 'wanko', 'bolt', 'soldier', 'archer'];
@@ -12,7 +11,7 @@ var SAVE = {
   baseLevels: { regen:0, maxGold:0, hp:0, atk:0, cdReduction:0 },
   deck: null,
   unlocked: [],
-  clearTimes: {}   // 【新機能】ステージクリア最短タイム記録
+  clearTimes: {}
 };
 
 function loadSave() {
@@ -20,34 +19,48 @@ function loadSave() {
     SAVE.gold         = parseInt(localStorage.getItem('nrts_gold') || '0', 10);
     SAVE.levels       = JSON.parse(localStorage.getItem('nrts_levels')      || '{}');
     var savedBase     = JSON.parse(localStorage.getItem('nrts_base_levels') || '{}');
-    // 【バグ修正】cdReduction:0 を追加したデフォルト値にマージ
     SAVE.baseLevels   = Object.assign({ regen:0, maxGold:0, hp:0, atk:0, cdReduction:0 }, savedBase);
-    SAVE.deck         = JSON.parse(localStorage.getItem('nrts_deck')        || 'null');
+    var rawDeck       = JSON.parse(localStorage.getItem('nrts_deck')        || 'null');
     var savedUnlocked = JSON.parse(localStorage.getItem('nrts_unlocked')    || 'null');
     SAVE.unlocked     = Array.isArray(savedUnlocked) ? savedUnlocked : INITIAL_UNLOCKED.slice();
     SAVE.clearTimes   = JSON.parse(localStorage.getItem('nrts_clear_times') || '{}');
+
+    // デッキを 10 スロット形式に正規化（旧形式からの移行対応）
+    SAVE.deck = normalizeDeck(rawDeck);
   } catch(e) {
     console.error('Save load error:', e);
     SAVE = { gold:0, levels:{}, baseLevels:{ regen:0, maxGold:0, hp:0, atk:0, cdReduction:0 },
              deck:null, unlocked: INITIAL_UNLOCKED.slice(), clearTimes:{} };
-  }
-
-  if (!Array.isArray(SAVE.deck) || SAVE.deck.length === 0) {
-    SAVE.deck = INITIAL_UNLOCKED.slice();
-  }
-  SAVE.deck = SAVE.deck.filter(function(id) {
-    return SAVE.unlocked.indexOf(id) >= 0 && PLAYER_UNITS[id];
-  });
-  // 【バグ修正】フォールバック時も unlock チェックを通過したものだけ使う
-  if (SAVE.deck.length === 0) {
-    SAVE.deck = INITIAL_UNLOCKED.filter(function(id) {
-      return SAVE.unlocked.indexOf(id) >= 0 && PLAYER_UNITS[id];
-    });
-    if (SAVE.deck.length === 0) SAVE.deck = INITIAL_UNLOCKED.slice();
+    SAVE.deck = normalizeDeck(null);
   }
 
   PLAYER_DECK   = SAVE.deck.slice();
   selectedStage = STAGES_CONFIG[0];
+}
+
+// デッキを常に 10 スロット配列に正規化
+function normalizeDeck(raw) {
+  var result = new Array(10).fill(null);
+  if (!Array.isArray(raw)) {
+    // デフォルト配置
+    var def = INITIAL_UNLOCKED.filter(function(id) { return PLAYER_UNITS[id]; });
+    for (var i = 0; i < Math.min(def.length, 10); i++) result[i] = def[i];
+    return result;
+  }
+  // 10 スロット済みの新形式
+  if (raw.length === 10) {
+    for (var i = 0; i < 10; i++) {
+      var id = raw[i];
+      if (id && PLAYER_UNITS[id]) result[i] = id;
+    }
+    return result;
+  }
+  // 旧形式（文字列配列）→先頭から順に詰める
+  for (var i = 0; i < Math.min(raw.length, 10); i++) {
+    var id = raw[i];
+    if (id && PLAYER_UNITS[id]) result[i] = id;
+  }
+  return result;
 }
 
 function persistSave() {
@@ -61,9 +74,9 @@ function persistSave() {
 
 function isUnlocked(id) { return SAVE.unlocked.indexOf(id) >= 0; }
 function getMultiplier(id) { return 1.0 + (SAVE.levels[id] || 0) * 0.1; }
+// レベル上限なし — コストは単調増加
 function getUpgradeCost(id) { return ((SAVE.levels[id] || 0) + 1) * 50; }
 
-// 【新機能】クリアタイム記録（main.js の endGame から呼び出し）
 function recordStageClear(stageId, time) {
   if (!SAVE.clearTimes) SAVE.clearTimes = {};
   var prev = SAVE.clearTimes[stageId];
@@ -88,7 +101,6 @@ function showScreen(name) {
   });
 }
 
-// ── Home Screen ───────────────────────────────────────
 function initHome() {
   loadSave();
   showScreen('home');
@@ -105,70 +117,177 @@ function goHome() {
   refreshHomeGold();
 }
 
+// ── 汎用：ユニットアイコン HTML（画像 or 絵文字）────────
+function unitIconHtmlHome(d, size) {
+  if (d.img) {
+    return '<img src="' + d.img + '" style="width:' + size + 'px;height:' + size + 'px;object-fit:contain;vertical-align:middle;">';
+  }
+  return '<span style="font-size:' + size + 'px">' + d.e + '</span>';
+}
+
 // ── Deck Builder ──────────────────────────────────────
-var deckSel = [];
+// deckSlots  : 作業用 10スロット配列
+// deckSelSlot: 現在選択中のスロット番号（-1 = 未選択）
+
+var deckSlots    = new Array(10).fill(null);
+var deckSelSlot  = -1;
 
 function openDeck() {
-  deckSel = SAVE.deck.slice();
+  deckSlots   = SAVE.deck.slice();
+  deckSelSlot = -1;
   renderDeckBuilder();
   showScreen('deck');
 }
 
 function renderDeckBuilder() {
-  var el  = document.getElementById('deck-grid');
-  var cnt = document.getElementById('deck-count');
-  if (!el) return;
-  el.innerHTML = '';
-  if (cnt) cnt.textContent = deckSel.length + ' / 10';
+  var poolEl  = document.getElementById('deck-grid');
+  var slotsEl = document.getElementById('deck-slots');
+  var cnt     = document.getElementById('deck-count');
+  if (!poolEl || !slotsEl) return;
+
+  var filled = deckSlots.filter(function(id) { return id !== null; }).length;
+  if (cnt) cnt.textContent = filled + ' / 10';
+
+  // ── スロットグリッド（デッキプレビュー）──────────────
+  slotsEl.innerHTML = '';
+  for (var i = 0; i < 10; i++) {
+    (function(idx) {
+      var id  = deckSlots[idx];
+      var d   = id ? PLAYER_UNITS[id] : null;
+      var sel = deckSelSlot === idx;
+
+      var slot = document.createElement('div');
+      slot.className = 'ds-slot' +
+        (sel   ? ' ds-selected' : '') +
+        (d     ? ' ds-filled'   : '');
+
+      if (d) {
+        var fs = Math.min(Math.round(18 * (d.size || 1)), 23);
+        var isSpell = d.type === 'spell';
+        if (isSpell) slot.classList.add('ds-spell');
+        slot.innerHTML =
+          '<div class="ds-num">' + (idx + 1) + '</div>' +
+          '<div class="ds-ico">' + unitIconHtmlHome(d, fs) + '</div>' +
+          '<div class="ds-nm">' + d.n + '</div>' +
+          '<div class="ds-cost">G' + d.cost + '</div>';
+
+        // × ボタン（stopPropagation でスロット選択を防ぐ）
+        var delBtn = document.createElement('button');
+        delBtn.className = 'ds-del';
+        delBtn.textContent = '×';
+        delBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          clearDeckSlot(idx);
+        });
+        slot.appendChild(delBtn);
+      } else {
+        slot.innerHTML =
+          '<div class="ds-num">' + (idx + 1) + '</div>' +
+          '<div class="ds-ico-empty">' + (sel ? '▼' : '＋') + '</div>';
+      }
+
+      slot.addEventListener('click', function() { tapDeckSlot(idx); });
+      slotsEl.appendChild(slot);
+    })(i);
+  }
+
+  // ── ユニットプール ────────────────────────────────
+  poolEl.innerHTML = '';
+  // スロット選択中はヒント表示
+  var hintEl = document.getElementById('deck-slot-hint');
+  if (hintEl) {
+    hintEl.textContent = deckSelSlot >= 0
+      ? 'スロット ' + (deckSelSlot + 1) + ' を選択中 — ユニットをタップして配置'
+      : 'スロットをタップして選択 → ユニットをタップして配置';
+  }
 
   Object.keys(PLAYER_UNITS).forEach(function(id) {
     if (!isUnlocked(id)) return;
-    var d   = PLAYER_UNITS[id];
-    var sel = deckSel.indexOf(id) >= 0;
-    var lv  = SAVE.levels[id] || 0;
-    var fs  = Math.min(Math.round(22 * (d.size || 1)), 30);
+    var d       = PLAYER_UNITS[id];
+    var lv      = SAVE.levels[id] || 0;
+    var slotIdx = deckSlots.indexOf(id);
+    var inDeck  = slotIdx >= 0;
+    var fs      = Math.min(Math.round(22 * (d.size || 1)), 30);
     var typeTag = d.type === 'spell' ? '✨スペル' : d.type === 'air' ? '✈飛行' : '⚔地上';
     var zoneTag = (d.type === 'spell' || d.zone === 'all') ? '全域' : '自陣';
+    var slotBadge = inDeck
+      ? '<span class="db-slot-badge">' + (slotIdx + 1) + '</span>' : '';
 
     var card = document.createElement('div');
-    card.className = 'dbcard' + (sel ? ' dbsel' : '');
+    card.className = 'dbcard' + (inDeck ? ' dbsel' : '');
     card.innerHTML =
-      '<span class="db-ico" style="font-size:' + fs + 'px">' + d.e + '</span>' +
+      '<span class="db-ico">' + unitIconHtmlHome(d, fs) + '</span>' +
       '<div class="db-body">' +
         '<div class="db-nm">' + d.n +
           ' <span class="db-type">' + typeTag + '</span>' +
           ' <span class="db-type" style="color:#a78bfa;background:#1a0a2e">' + zoneTag + '</span>' +
           ' <span class="db-lv">Lv.' + lv + '</span>' +
+          slotBadge +
         '</div>' +
       '</div>' +
       '<button class="stat-btn" title="ステータス確認">📊</button>' +
-      '<span class="db-chk" style="visibility:' + (sel ? 'visible' : 'hidden') + '">✓</span>';
+      '<span class="db-chk" style="visibility:' + (inDeck ? 'visible' : 'hidden') + '">✓</span>';
 
-    // 詳細ボタン（カード選択と干渉しないよう stopPropagation）
     card.querySelector('.stat-btn').addEventListener('click', function(e) {
-      e.stopPropagation();
-      showUnitStats(id);
+      e.stopPropagation(); showUnitStats(id);
     });
-
-    card.addEventListener('click', function() { toggleDeckCard(id); });
-    el.appendChild(card);
+    card.addEventListener('click', function() { tapDeckUnit(id); });
+    poolEl.appendChild(card);
   });
 }
 
-function toggleDeckCard(id) {
-  var idx = deckSel.indexOf(id);
-  if (idx >= 0) {
-    deckSel.splice(idx, 1);
+// スロットをタップ（選択 or 解除）
+function tapDeckSlot(idx) {
+  deckSelSlot = (deckSelSlot === idx) ? -1 : idx;
+  renderDeckBuilder();
+}
+
+// ユニットをタップ
+function tapDeckUnit(id) {
+  var existingSlot = deckSlots.indexOf(id);
+
+  if (deckSelSlot >= 0) {
+    // スロット選択中：そのスロットに割り当て
+    if (existingSlot >= 0 && existingSlot !== deckSelSlot) {
+      deckSlots[existingSlot] = null;   // 旧スロットをクリア
+    }
+    if (deckSlots[deckSelSlot] === id) {
+      // 同じユニットをもう一度タップ → 解除
+      deckSlots[deckSelSlot] = null;
+    } else {
+      deckSlots[deckSelSlot] = id;
+    }
+    deckSelSlot = -1;
   } else {
-    if (deckSel.length >= 10) { flashMsg('デッキは最大10体まで'); return; }
-    deckSel.push(id);
+    // スロット未選択
+    if (existingSlot >= 0) {
+      // デッキ内にいれば取り出す
+      deckSlots[existingSlot] = null;
+    } else {
+      // 空き先頭スロットに追加
+      var emptyIdx = deckSlots.indexOf(null);
+      if (emptyIdx >= 0) {
+        deckSlots[emptyIdx] = id;
+      } else {
+        flashMsg('全スロットが埋まっています（×で解除）');
+        return;
+      }
+    }
   }
   renderDeckBuilder();
 }
 
+// スロットをクリア
+function clearDeckSlot(idx) {
+  deckSlots[idx] = null;
+  if (deckSelSlot === idx) deckSelSlot = -1;
+  renderDeckBuilder();
+}
+
 function saveDeck() {
-  if (deckSel.length < 1) { flashMsg('最低1体必要です'); return; }
-  SAVE.deck   = deckSel.slice();
+  var cnt = deckSlots.filter(function(id) { return id !== null; }).length;
+  if (cnt < 1) { flashMsg('最低1体配置してください'); return; }
+  SAVE.deck   = deckSlots.slice();
   PLAYER_DECK = SAVE.deck.slice();
   persistSave();
   flashMsg('デッキを保存しました！');
@@ -192,6 +311,7 @@ function renderUpgrade() {
     var d        = PLAYER_UNITS[id];
     var unlocked = isUnlocked(id);
     var lv       = SAVE.levels[id] || 0;
+    var fs       = Math.min(Math.round(22 * (d.size || 1)), 30);
     var row      = document.createElement('div');
     row.className = 'up-row';
 
@@ -199,40 +319,32 @@ function renderUpgrade() {
       var ucost     = d.unlockCost || 0;
       var canUnlock = SAVE.gold >= ucost;
       row.innerHTML =
-        '<div class="up-ico">' + d.e + '</div>' +
+        '<div class="up-ico">' + unitIconHtmlHome(d, 26) + '</div>' +
         '<div class="up-mid">' +
           '<div class="up-nm">' + d.n +
             ' <span class="up-lv" style="color:#ef4444">🔒 未解放</span>' +
           '</div>' +
         '</div>' +
-        '<button class="stat-btn" title="ステータス確認">📊</button>' +
+        '<button class="stat-btn">📊</button>' +
         '<button class="up-btn' + (canUnlock ? ' up-btn-ok' : '') + '"' +
           (canUnlock ? '' : ' disabled') + '>解放 G' + ucost + '</button>';
-      row.querySelector('.stat-btn').addEventListener('click', function(e) {
-        e.stopPropagation(); showUnitStats(id);
-      });
+      row.querySelector('.stat-btn').addEventListener('click', function(e) { e.stopPropagation(); showUnitStats(id); });
       row.querySelector('.up-btn').addEventListener('click', function() { doUnlock(id); });
     } else {
-      var cost  = getUpgradeCost(id);
-      var maxed = lv >= 10;
-      var canBuy = !maxed && SAVE.gold >= cost;
-      // 【修正】ステータスの上昇表記を削除し、レベルのみ表示
+      var cost   = getUpgradeCost(id);
+      var canBuy = SAVE.gold >= cost;
+      // レベル上限なし：MAX 表示不要、コストボタンのみ
       row.innerHTML =
-        '<div class="up-ico">' + d.e + '</div>' +
+        '<div class="up-ico">' + unitIconHtmlHome(d, 26) + '</div>' +
         '<div class="up-mid">' +
           '<div class="up-nm">' + d.n +
-            ' <span class="up-lv' + (maxed ? ' up-maxed-lbl' : '') + '">Lv.' + lv + '/10</span>' +
+            ' <span class="up-lv">Lv.' + lv + '</span>' +
           '</div>' +
-          '<div class="up-track"><div class="up-prog" style="width:' + (lv * 10) + '%"></div></div>' +
         '</div>' +
-        '<button class="stat-btn" title="ステータス確認">📊</button>' +
-        '<button class="up-btn' +
-          (maxed ? ' up-btn-max' : canBuy ? ' up-btn-ok' : '') + '"' +
-          (maxed || !canBuy ? ' disabled' : '') +
-          '>' + (maxed ? 'MAX' : 'G' + cost) + '</button>';
-      row.querySelector('.stat-btn').addEventListener('click', function(e) {
-        e.stopPropagation(); showUnitStats(id);
-      });
+        '<button class="stat-btn">📊</button>' +
+        '<button class="up-btn' + (canBuy ? ' up-btn-ok' : '') + '"' +
+          (canBuy ? '' : ' disabled') + '>G' + cost + '</button>';
+      row.querySelector('.stat-btn').addEventListener('click', function(e) { e.stopPropagation(); showUnitStats(id); });
       row.querySelector('.up-btn').addEventListener('click', function() { doUpgrade(id); });
     }
     el.appendChild(row);
@@ -240,12 +352,11 @@ function renderUpgrade() {
 }
 
 function doUpgrade(id) {
-  var lv = SAVE.levels[id] || 0;
-  if (lv >= 10) return;
+  // レベル上限なし
   var cost = getUpgradeCost(id);
   if (SAVE.gold < cost) { flashMsg('ゴールドが足りません'); return; }
   SAVE.gold -= cost;
-  SAVE.levels[id] = lv + 1;
+  SAVE.levels[id] = (SAVE.levels[id] || 0) + 1;
   persistSave();
   renderUpgrade();
 }
@@ -273,23 +384,27 @@ function showUnitStats(id) {
   var rows  = document.getElementById('stat-popup-rows');
   if (!popup) return;
 
-  icon.textContent = d.e;
+  // ポップアップアイコン（画像 or 絵文字）
+  icon.innerHTML = unitIconHtmlHome(d, 28);
   name.textContent = d.n + '　Lv.' + lv;
 
   var html = '';
   if (d.type === 'spell') {
     html +=
-      statRow('💰', 'コスト',       d.cost + ' G') +
-      statRow('💥', 'ダメージ',      Math.round(d.dmg * m)) +
-      statRow('🎯', '効果範囲',      d.area) +
-      statRow('⏱', 'クールタイム',  d.cd + ' s');
+      statRow('💰', 'コスト',        d.cost + ' G') +
+      statRow('💥', 'ダメージ',       Math.round(d.dmg * m)) +
+      statRow('🎯', '効果範囲',       d.area) +
+      statRow('⏱', 'クールタイム',   d.cd + ' s');
   } else {
+    var targLabel = { ground:'地上のみ', air:'飛行のみ', both:'両方', base:'拠点のみ' }[d.targets] || d.targets;
     html +=
-      statRow('💰', 'コスト',      d.cost + ' G') +
-      statRow('❤️', 'HP',          Math.round(d.hp  * m)) +
-      statRow('⚔', 'ATK',         Math.round(d.dmg * m)) +
-      statRow('🎯', '攻撃範囲',    d.rng) +
-      statRow('💨', '移動速度',    d.spd);
+      statRow('💰', 'コスト',        d.cost + ' G') +
+      statRow('❤️', 'HP',            Math.round(d.hp  * m)) +
+      statRow('⚔', 'ATK',           Math.round(d.dmg * m)) +
+      statRow('🎯', '攻撃範囲',      d.rng) +
+      statRow('💨', '移動速度',      d.spd) +
+      statRow('🏹', 'ターゲット',    targLabel) +
+      (d.isBase ? statRow('🏯', '拠点認識', 'あり') : '');
   }
   rows.innerHTML = html;
   popup.classList.add('show');
@@ -308,12 +423,11 @@ function closeStatPopup() {
 
 // ── Base Upgrade ──────────────────────────────────────
 var BASE_UPGRADES = {
-  regen:       { n:'ゴールド回復',   e:'⏳', max:10, base:5,    step:0.5  },
-  maxGold:     { n:'ゴールド上限',   e:'💰', max:10, base:100,  step:20   },
-  hp:          { n:'拠点HP',         e:'🏯', max:10, base:1000, step:200  },
-  atk:         { n:'拠点攻撃力',     e:'🏹', max:10, base:20,   step:8    },
-  // 【新機能】配置クールタイム短縮（1Lv=5%短縮、最大50%）
-  cdReduction: { n:'配置CD短縮',     e:'⚡', max:10, base:0,    step:5, suffix:'%' }
+  regen:       { n:'ゴールド回復', e:'⏳', base:5,    step:0.5  },
+  maxGold:     { n:'ゴールド上限', e:'💰', base:100,  step:20   },
+  hp:          { n:'拠点HP',       e:'🏯', base:1000, step:200  },
+  atk:         { n:'拠点攻撃力',   e:'🏹', base:20,   step:8    },
+  cdReduction: { n:'配置CD短縮',   e:'⚡', base:0,    step:5, suffix:'%' }
 };
 
 function openBaseUpgrade() {
@@ -329,41 +443,37 @@ function renderBaseUpgrade() {
   if (gel) gel.textContent = '💰 ' + SAVE.gold + ' G';
 
   Object.keys(BASE_UPGRADES).forEach(function(key) {
-    var d    = BASE_UPGRADES[key];
-    var lv   = SAVE.baseLevels[key] || 0;
-    var cost = (lv + 1) * 100;
-    var maxed   = lv >= d.max;
-    var canBuy  = !maxed && SAVE.gold >= cost;
+    var d       = BASE_UPGRADES[key];
+    var lv      = SAVE.baseLevels[key] || 0;
+    var cost    = (lv + 1) * 100;
+    var canBuy  = SAVE.gold >= cost;
     var curVal  = d.base + lv * d.step;
     var nextVal = d.base + (lv + 1) * d.step;
     var sfx     = d.suffix || '';
 
     var row = document.createElement('div');
     row.className = 'up-row';
+    // レベル上限なし
     row.innerHTML =
       '<div class="up-ico">' + d.e + '</div>' +
       '<div class="up-mid">' +
         '<div class="up-nm">' + d.n +
-          ' <span class="up-lv' + (maxed ? ' up-maxed-lbl' : '') + '">Lv.' + lv + '/' + d.max + '</span>' +
+          ' <span class="up-lv">Lv.' + lv + '</span>' +
         '</div>' +
-        '<div class="up-stat">現在 <b>' + curVal + sfx + '</b>' +
-          (maxed ? '' : ' → <b>' + nextVal + sfx + '</b>') + '</div>' +
-        '<div class="up-track"><div class="up-prog" style="width:' + (lv * (100/d.max)) + '%"></div></div>' +
+        '<div class="up-stat">現在 <b>' + curVal + sfx + '</b> → <b>' + nextVal + sfx + '</b></div>' +
       '</div>' +
-      '<button class="up-btn' +
-        (maxed ? ' up-btn-max' : canBuy ? ' up-btn-ok' : '') + '"' +
-        (maxed || !canBuy ? ' disabled' : '') +
-        '>' + (maxed ? 'MAX' : 'G' + cost) + '</button>';
+      '<button class="up-btn' + (canBuy ? ' up-btn-ok' : '') + '"' +
+        (canBuy ? '' : ' disabled') + '>G' + cost + '</button>';
     row.querySelector('.up-btn').addEventListener('click', function() {
-      doBaseUpgrade(key, cost, d.max);
+      doBaseUpgrade(key);
     });
     el.appendChild(row);
   });
 }
 
-function doBaseUpgrade(key, cost, max) {
-  var lv = SAVE.baseLevels[key] || 0;
-  if (lv >= max) return;
+function doBaseUpgrade(key) {
+  var lv   = SAVE.baseLevels[key] || 0;
+  var cost = (lv + 1) * 100;
   if (SAVE.gold < cost) { flashMsg('ゴールドが足りません'); return; }
   SAVE.gold -= cost;
   SAVE.baseLevels[key] = lv + 1;
@@ -383,22 +493,16 @@ function renderStageSelect() {
   el.innerHTML = '';
   STAGES_CONFIG.forEach(function(s) {
     var active = selectedStage && selectedStage.id === s.id;
-
-    // 【新機能】クリア済みバッジ & ベストタイム
     var ct = SAVE.clearTimes && SAVE.clearTimes[s.id];
     var clearBadge = ct
       ? '<div class="st-cleared">✅ クリア済み　ベスト: ' + formatTime(ct) + '</div>'
       : '';
-
     var card = document.createElement('div');
     card.className = 'st-card' + (active ? ' st-active' : '');
     card.innerHTML =
       '<div class="st-hd">' +
         '<span class="st-ico">' + s.icon + '</span>' +
-        '<div>' +
-          '<div class="st-nm">' + s.name + '</div>' +
-          '<div class="st-sub">' + s.sub + '</div>' +
-        '</div>' +
+        '<div><div class="st-nm">' + s.name + '</div><div class="st-sub">' + s.sub + '</div></div>' +
       '</div>' +
       clearBadge +
       '<div class="st-det">' +
@@ -420,7 +524,6 @@ function startBattle() {
 
 // ── Battle End Reward ─────────────────────────────────
 function awardBattleGold(win, leftoverGold) {
-  // 【バグ修正】STAGES → STAGES_CONFIG
   var stg   = selectedStage || STAGES_CONFIG[0];
   var base  = win ? stg.baseReward : 0;
   var bonus = win ? Math.floor(leftoverGold) : 0;

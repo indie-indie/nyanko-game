@@ -14,50 +14,67 @@ var BATTLE_TIPS = [
   'アサシンは全域配置可能。敵の後方に奇襲をかけよう。',
   'フリーズスペルで強敵を一時停止できる。',
   '敵の飛行ユニットには「両方」ターゲットのユニットで対抗しよう。',
+  'ゴーレムは isBase 属性持ち。敵の突進役もゴーレムを狙う！',
 ];
 
+// ── カードアイコン HTML（画像 or 絵文字）─────────────
+function unitIconHtml(d, size) {
+  if (d.img) {
+    return '<img src="' + d.img + '" style="width:' + size + 'px;height:' + size + 'px;object-fit:contain;vertical-align:middle;">';
+  }
+  return d.e;
+}
+
 // ── Deck ──────────────────────────────────────────────
+// PLAYER_DECK は 10 要素の位置固定配列（null = 空スロット）
 
 function buildDeck() {
   var row = document.getElementById('deck');
   row.innerHTML = '';
   deckBuilt = false;
 
-  // 全デッキ（最大10体）を2段で表示
-  PLAYER_DECK.forEach(function(id) {
-    var d = PLAYER_UNITS[id];
-    if (!d) return;
-
+  for (var slotIdx = 0; slotIdx < PLAYER_DECK.length; slotIdx++) {
+    var id = PLAYER_DECK[slotIdx];
     var el = document.createElement('div');
     el.className = 'card';
+
+    if (!id) {
+      // 空スロット
+      el.classList.add('card-empty');
+      el.innerHTML = '<div style="font-size:14px;color:#1e3a5f;">—</div>';
+      row.appendChild(el);
+      continue;
+    }
+
     el.setAttribute('data-uid', id);
-
-    var fs = Math.min(Math.round(20 * d.size), 26);
-    var typeTag = '';
-    if (d.type === 'air')   typeTag = '✈ 飛行';
-    else if (d.type === 'spell') typeTag = '✨ 魔法';
-    else                    typeTag = '⚔ 地上';
-
+    var d  = PLAYER_UNITS[id];
+    var fs = Math.min(Math.round(20 * d.size), 24);
+    var typeTag = d.type === 'air' ? '✈' : d.type === 'spell' ? '✨' : '⚔';
     if (d.type === 'spell') el.classList.add('card-spell');
 
     el.innerHTML =
-      '<div class="cico" style="font-size:' + fs + 'px">' + d.e + '</div>' +
+      '<div class="cico" style="font-size:' + (d.img ? '0' : fs) + 'px">' +
+        unitIconHtml(d, d.img ? fs : null) +
+      '</div>' +
       '<div class="cnm">' + d.n + '</div>' +
       '<div class="ctyp">' + typeTag + '</div>' +
       '<div class="ccost">G' + d.cost + '</div>' +
       '<div class="cdov"></div>';
 
-    el.addEventListener('click', function() { handleCardClick(id); });
+    el.addEventListener('click', function(capturedId) {
+      return function() { handleCardClick(capturedId); };
+    }(id));
     row.appendChild(el);
-  });
+  }
 
   deckBuilt = true;
 }
 
-// Per-frame lightweight update (no innerHTML rebuild)
+// Per-frame update
 function updateDeckUI() {
   if (!deckBuilt) return;
   PLAYER_DECK.forEach(function(id) {
+    if (!id) return;
     var el = document.querySelector('[data-uid="' + id + '"]');
     if (!el) return;
     var d      = PLAYER_UNITS[id];
@@ -81,7 +98,6 @@ function updateDeckUI() {
 }
 
 // ── Gold bar ─────────────────────────────────────────
-
 function updGoldUI() {
   var r = Math.min(1, g.gold / g.maxGold);
   document.getElementById('gfl').style.width = (r * 100) + '%';
@@ -94,7 +110,6 @@ function updGoldUI() {
 }
 
 // ── Card click ───────────────────────────────────────
-
 function handleCardClick(id) {
   if (!g || !g.on) return;
   var d      = PLAYER_UNITS[id];
@@ -110,7 +125,6 @@ function handleCardClick(id) {
 function onCd(id) { return (g.unitCDs[id] || 0) > 0.05; }
 
 // ── Win/Lose overlay ─────────────────────────────────
-
 function renderOverlay(win, reward) {
   var ov = document.getElementById('ov');
   ov.style.display = 'flex';
@@ -129,14 +143,12 @@ function renderOverlay(win, reward) {
   var rewardEl = document.getElementById('oreward');
   if (rewardEl) {
     if (win && reward) {
-      // 勝利時：報酬を表示
       rewardEl.style.display = '';
       rewardEl.innerHTML =
         '基礎報酬　<b style="color:#fbbf24">+' + reward.base + ' G</b><br>' +
         '残ゴールド　<b style="color:#93c5fd">+' + reward.bonus + ' G</b><br>' +
         '<span style="color:#f1f5f9;font-size:13px">合計　<b style="color:#fbbf24">+' + reward.total + ' G</b> 獲得！</span>';
     } else {
-      // 敗北時：ランダムヒントを表示
       rewardEl.style.display = '';
       var tip = BATTLE_TIPS[Math.floor(Math.random() * BATTLE_TIPS.length)];
       rewardEl.innerHTML =

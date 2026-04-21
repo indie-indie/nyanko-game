@@ -1,4 +1,7 @@
 // enemies.js — Enemy unit definitions
+//
+// targets : 'ground' 地上のみ | 'air' 飛行のみ | 'both' 両方 | 'base' 拠点のみ（ユニット無視）
+// isBase  : true = プレイヤーの targets:'base' ユニットがこの敵を拠点として認識する
 
 var ENEMY_UNITS = {
   gremlin: {
@@ -25,73 +28,71 @@ var ENEMY_UNITS = {
     type:'air', targets:'both',
     size:1.0, rew:10
   },
-    slime: {
-      n:'スライム', e:'🟢',
-      hp:40, dmg:8, spd:50, rng:45, ar:1.0,
-      type:'ground', targets:'ground',
-      size:0.8, rew:10
-    },  
-    goblin: {
-      n:'ゴブリン', e:'👺',
-      hp:70, dmg:14, spd:65, rng:50, ar:1.0,
-      type:'ground', targets:'ground',
-      size:0.9, rew:15
-    },
-    orc: {
-      n:'オーク', e:'🪓',
-      hp:160, dmg:28, spd:45, rng:55, ar:1.2,
-      type:'ground', targets:'ground',
-      size:1.1,area:15, rew:25
-    },
-    lancer: {
-      n:'ランサー', e:'🔱',
-      hp:120, dmg:32, spd:55, rng:90, ar:1.3,
-      type:'ground', targets:'both',
-      size:1.0,area:30, rew:25
-    }, 
-    charger: {
-      n:'チャージナイト', e:'🐂',
-      hp:180, dmg:48, spd:95, rng:45, ar:1.8,
-      type:'ground', targets:'ground',
-      size:1.2, rew:30,
-    },
-      brute: {
-        n:'ブルート', e:'🚛',
-        hp:380, dmg:26, spd:28, rng:50, ar:1.2,
-        type:'ground', targets:'ground',
-        size:1.3, rew:30
-      },
-    
-      runner: {
-        n:'ランナー', e:'🏃',
-        hp:60, dmg:12, spd:140, rng:45, ar:0.9,
-        type:'ground', targets:'ground',
-        size:0.8, rew:18
-      },
-    
-      longbow: {
-        n:'ロングボウ', e:'🔫',
-        hp:80, dmg:24, spd:40, rng:170, ar:1.4,
-        type:'ground', targets:'both',
-        size:1.0, rew:25
-      },
-    
-      striker: {
-        n:'ストライカー', e:'🥊',
-        hp:110, dmg:20, spd:75, rng:50, ar:0.5,
-        type:'ground', targets:'ground',
-        size:1.0, rew:22
-      },
-    
-      gargoyle: {
-        n:'ガーゴイル', e:'👾',
-        hp:260, dmg:30, spd:35, rng:55, ar:1.3,
-        type:'air', targets:'both',
-        size:1.2, rew:35
-      },
+  slime: {
+    n:'スライム', e:'🟢',
+    hp:40, dmg:8, spd:50, rng:45, ar:1.0,
+    type:'ground', targets:'ground',
+    size:0.8, rew:10
+  },
+  goblin: {
+    n:'ゴブリン', e:'👺',
+    hp:70, dmg:14, spd:65, rng:50, ar:1.0,
+    type:'ground', targets:'ground',
+    size:0.9, rew:15
+  },
+  orc: {
+    n:'オーク', e:'🪓',
+    hp:160, dmg:28, spd:45, rng:55, ar:1.2,
+    type:'ground', targets:'ground',
+    size:1.1, area:15, rew:25
+  },
+  lancer: {
+    n:'ランサー', e:'🔱',
+    hp:120, dmg:32, spd:55, rng:90, ar:1.3,
+    type:'ground', targets:'both',
+    size:1.0, area:30, rew:25
+  },
+  // targets:'base' — ユニットを無視して拠点（+isBase:trueユニット）のみ狙う
+  charger: {
+    n:'チャージナイト', e:'🐂',
+    hp:180, dmg:48, spd:95, rng:45, ar:1.8,
+    type:'ground', targets:'base',
+    size:1.2, rew:30
+  },
+  brute: {
+    n:'ブルート', e:'🚛',
+    hp:380, dmg:26, spd:28, rng:50, ar:1.2,
+    type:'ground', targets:'ground',
+    size:1.3, rew:30
+  },
+  // targets:'base' — 超高速で拠点に突進。ユニットは一切無視。
+  runner: {
+    n:'ランナー', e:'🏃',
+    hp:60, dmg:12, spd:140, rng:45, ar:0.9,
+    type:'ground', targets:'base',
+    size:0.8, rew:18
+  },
+  longbow: {
+    n:'ロングボウ', e:'🔫',
+    hp:80, dmg:24, spd:40, rng:170, ar:1.4,
+    type:'ground', targets:'both',
+    size:1.0, rew:25
+  },
+  striker: {
+    n:'ストライカー', e:'🥊',
+    hp:110, dmg:20, spd:75, rng:50, ar:0.5,
+    type:'ground', targets:'ground',
+    size:1.0, rew:22
+  },
+  gargoyle: {
+    n:'ガーゴイル', e:'👾',
+    hp:260, dmg:30, spd:35, rng:55, ar:1.3,
+    type:'air', targets:'both',
+    size:1.2, rew:35
+  },
   garpy: {
     n:'ガーピー', e:'🦅',
-    hp:55,  dmg:18, spd:85,  rng:55,  ar:1.0,
+    hp:55, dmg:18, spd:85, rng:55, ar:1.0,
     type:'air', targets:'both',
     size:0.9, rew:20
   }

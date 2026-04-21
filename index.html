@@ -31,126 +31,57 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-button {
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-#gc {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 390 / 510;
-  touch-action: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-button, .card, .home-btn {
-  -webkit-tap-highlight-color: transparent;
-}
+button { cursor: pointer; touch-action: manipulation; }
+#gc { width: 100%; height: auto; aspect-ratio: 390 / 510; touch-action: none; -webkit-tap-highlight-color: transparent; }
+button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 
 .back-btn {
-  background: transparent;
-  color: #64748b;
-  border: .5px solid #1e3a5f;
-  border-radius: 6px;
-  padding: 7px 14px;
-  font-size: 12px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: color .12s, border-color .12s;
+  background: transparent; color: #64748b; border: .5px solid #1e3a5f;
+  border-radius: 6px; padding: 7px 14px; font-size: 12px; cursor: pointer;
+  font-family: inherit; transition: color .12s, border-color .12s;
 }
 .back-btn:hover { color: #94a3b8; border-color: #334155; }
 
 #flash-msg {
-  position: fixed;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1e293b;
-  color: #f1f5f9;
-  border: .5px solid #334155;
-  border-radius: 8px;
-  padding: 8px 20px;
-  font-size: 13px;
-  opacity: 0;
-  transition: opacity .3s;
-  pointer-events: none;
-  z-index: 999;
-  white-space: nowrap;
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: #f1f5f9; border: .5px solid #334155;
+  border-radius: 8px; padding: 8px 20px; font-size: 13px; opacity: 0;
+  transition: opacity .3s; pointer-events: none; z-index: 999; white-space: nowrap;
 }
 
 .screen-header {
-  background: #080d1e;
-  border-bottom: 1.5px solid #1a2a4a;
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-shrink: 0;
+  background: #080d1e; border-bottom: 1.5px solid #1a2a4a;
+  padding: 14px 16px; display: flex; align-items: center;
+  justify-content: space-between; gap: 10px; flex-shrink: 0;
 }
 .screen-header h2 { font-size: 15px; font-weight: 600; color: #f1f5f9; }
 .screen-scroll { flex: 1; overflow-y: auto; padding: 10px 12px; }
 .screen-footer {
-  background: #080d1e;
-  border-top: 1.5px solid #1a2a4a;
-  padding: 12px 16px;
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+  background: #080d1e; border-top: 1.5px solid #1a2a4a;
+  padding: 12px 16px; display: flex; gap: 8px; flex-shrink: 0;
 }
 .save-btn {
-  flex: 1;
-  background: #1d4ed8;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 11px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background .12s;
+  flex: 1; background: #1d4ed8; color: #fff; border: none;
+  border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: background .12s;
 }
 .save-btn:hover { background: #2563eb; }
 
 /* ════════════════════════
-   HOME SCREEN
+   HOME
 ════════════════════════ */
-#screen-home {
-  justify-content: center;
-  align-items: center;
-  gap: 18px;
-  padding: 52px 28px;
-}
+#screen-home { justify-content: center; align-items: center; gap: 18px; padding: 52px 28px; }
 .home-title { font-size: 30px; font-weight: 700; color: #f1f5f9; letter-spacing: 1px; text-align: center; }
 .home-title span { color: #fbbf24; }
 .home-gold {
-  font-size: 18px;
-  color: #f59e0b;
-  font-family: monospace;
-  font-weight: 600;
-  background: #0d1f3a;
-  border: .5px solid #1e3a5f;
-  border-radius: 10px;
-  padding: 10px 28px;
-  width: 100%;
-  text-align: center;
+  font-size: 18px; color: #f59e0b; font-family: monospace; font-weight: 600;
+  background: #0d1f3a; border: .5px solid #1e3a5f; border-radius: 10px;
+  padding: 10px 28px; width: 100%; text-align: center;
 }
 .home-btn {
-  width: 100%;
-  padding: 15px;
-  background: #0d1f3a;
-  border: .5px solid #2563eb;
-  border-radius: 12px;
-  color: #e2e8f0;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: inherit;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  width: 100%; padding: 15px; background: #0d1f3a; border: .5px solid #2563eb;
+  border-radius: 12px; color: #e2e8f0; font-size: 15px; font-weight: 500;
+  cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 14px;
   transition: background .12s, border-color .12s, transform .1s;
 }
 .home-btn:hover { background: #112240; border-color: #60a5fa; transform: translateY(-1px); }
@@ -163,103 +94,124 @@ button, .card, .home-btn {
 /* ════════════════════════
    DECK BUILDER
 ════════════════════════ */
-#screen-deck { display: none; }
+#screen-deck { display: none; overflow: hidden; }   /* 内部でスクロール管理 */
 .deck-count-badge {
-  background: #1e3a5f;
-  color: #93c5fd;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-family: monospace;
+  background: #1e3a5f; color: #93c5fd; font-size: 12px; font-weight: 600;
+  padding: 4px 10px; border-radius: 20px; font-family: monospace;
 }
+/* ヒント行 */
+#deck-slot-hint {
+  padding: 5px 12px; font-size: 10px; color: #60a5fa;
+  background: #060b1a; border-bottom: .5px solid #1a2a4a;
+  text-align: center; flex-shrink: 0;
+}
+
+/* ユニットプール（スクロール可） */
 #deck-grid { display: flex; flex-direction: column; gap: 7px; }
 .dbcard {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #0d1f3a;
-  border: .5px solid #1e3a5f;
-  border-radius: 10px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: border-color .12s, background .12s;
+  display: flex; align-items: center; gap: 10px; background: #0d1f3a;
+  border: .5px solid #1e3a5f; border-radius: 10px; padding: 10px 12px;
+  cursor: pointer; transition: border-color .12s, background .12s;
 }
 .dbcard:hover { border-color: #2563eb; }
 .dbcard.dbsel { border-color: #fbbf24; background: #1a1a08; }
-.db-ico { flex-shrink: 0; }
+.db-ico  { flex-shrink: 0; line-height: 1; }
 .db-body { flex: 1; min-width: 0; }
-.db-nm  { font-size: 13px; font-weight: 500; color: #e2e8f0; }
+.db-nm   { font-size: 13px; font-weight: 500; color: #e2e8f0; }
 .db-type { font-size: 10px; color: #60a5fa; background: #0d2040; padding: 1px 5px; border-radius: 3px; }
-.db-lv  { font-size: 10px; color: #fbbf24; font-family: monospace; }
-.db-st  { font-size: 11px; color: #64748b; margin-top: 3px; }
-.db-chk { font-size: 16px; color: #fbbf24; font-weight: 700; flex-shrink: 0; }
+.db-lv   { font-size: 10px; color: #fbbf24; font-family: monospace; }
+.db-chk  { font-size: 16px; color: #fbbf24; font-weight: 700; flex-shrink: 0; }
+.db-slot-badge {
+  display: inline-block; background: #fbbf24; color: #000; font-size: 9px;
+  font-weight: 700; padding: 1px 5px; border-radius: 3px; font-family: monospace;
+}
+
+/* ────────────────────────
+   デッキスロットグリッド（バトル HUD と同じ見た目）
+──────────────────────── */
+.deck-slots-section {
+  background: #060b1a;
+  border-top: 2px solid #1a2a4a;
+  padding: 8px 8px 0;
+  flex-shrink: 0;
+}
+.deck-slots-label {
+  font-size: 9px; color: #334155; text-align: center;
+  margin-bottom: 5px; letter-spacing: 0.5px;
+}
+#deck-slots {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding-bottom: 8px;
+}
+.ds-slot {
+  height: 66px; background: #0a1628; border: .5px solid #1a2a4a;
+  border-radius: 8px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; position: relative; cursor: pointer; overflow: hidden;
+  transition: border-color .12s, box-shadow .12s;
+}
+.ds-slot:active { transform: scale(.96); }
+.ds-slot.ds-selected {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 10px rgba(251,191,36,.4);
+}
+.ds-slot.ds-filled { background: #0d1f3a; border-color: #2563eb; }
+.ds-slot.ds-spell  { background: linear-gradient(135deg, #1e0a2e, #3d105e); border-color: #a855f7; }
+.ds-num {
+  position: absolute; top: 2px; left: 4px;
+  font-size: 8px; color: #334155; font-family: monospace; font-weight: 700;
+}
+.ds-ico { line-height: 1; margin-bottom: 1px; }
+.ds-ico-empty { font-size: 16px; color: #1e3a5f; }
+.ds-nm   { font-size: 6.5px; color: #93c5fd; text-align: center; line-height: 1.1; max-width: 90%; overflow: hidden; }
+.ds-cost {
+  position: absolute; bottom: 2px; right: 2px;
+  font-size: 7px; background: #f59e0b; color: #000; font-weight: 700;
+  padding: 1px 3px; border-radius: 3px; font-family: monospace;
+}
+.ds-del {
+  position: absolute; top: 1px; right: 2px;
+  font-size: 9px; color: #ef4444; background: transparent;
+  border: none; cursor: pointer; line-height: 1; padding: 2px;
+  font-family: inherit; touch-action: manipulation;
+}
+.ds-del:hover { color: #fca5a5; }
 
 /* ════════════════════════
-   UPGRADE SCREEN
+   UPGRADE
 ════════════════════════ */
 #screen-upgrade { display: none; }
 .upgrade-gold-bar {
-  background: #0d1f3a;
-  border-bottom: 1.5px solid #1a2a4a;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #f59e0b;
-  font-family: monospace;
-  text-align: center;
-  flex-shrink: 0;
+  background: #0d1f3a; border-bottom: 1.5px solid #1a2a4a;
+  padding: 8px 16px; font-size: 14px; font-weight: 600; color: #f59e0b;
+  font-family: monospace; text-align: center; flex-shrink: 0;
 }
 #upgrade-list { display: flex; flex-direction: column; gap: 8px; }
 .up-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #0d1f3a;
-  border: .5px solid #1e3a5f;
-  border-radius: 10px;
-  padding: 10px 12px;
+  display: flex; align-items: center; gap: 8px; background: #0d1f3a;
+  border: .5px solid #1e3a5f; border-radius: 10px; padding: 10px 12px;
 }
 .up-ico  { font-size: 26px; flex-shrink: 0; width: 32px; text-align: center; }
 .up-mid  { flex: 1; min-width: 0; }
 .up-nm   { font-size: 13px; font-weight: 500; color: #e2e8f0; }
 .up-lv   { font-size: 10px; color: #fbbf24; font-family: monospace; }
-.up-maxed-lbl { color: #22c55e; }
 .up-stat { font-size: 10px; color: #64748b; margin-top: 2px; }
 .up-stat b { color: #93c5fd; font-weight: 500; }
-.up-track { height: 4px; background: #0c1627; border-radius: 2px; margin-top: 5px; overflow: hidden; }
-.up-prog  { height: 100%; background: linear-gradient(90deg, #1d4ed8, #fbbf24); border-radius: 2px; transition: width .25s; }
+/* レベル上限なしのためプログレスバーは不要 */
 .up-btn {
-  background: #111827;
-  color: #64748b;
-  border: .5px solid #1e3a5f;
-  border-radius: 7px;
-  padding: 7px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: not-allowed;
-  white-space: nowrap;
-  font-family: inherit;
-  flex-shrink: 0;
+  background: #111827; color: #64748b; border: .5px solid #1e3a5f;
+  border-radius: 7px; padding: 7px 10px; font-size: 11px; font-weight: 600;
+  cursor: not-allowed; white-space: nowrap; font-family: inherit; flex-shrink: 0;
 }
-.up-btn-ok  { background: #1d4ed8; color: #fff; border-color: #2563eb; cursor: pointer; }
+.up-btn-ok { background: #1d4ed8; color: #fff; border-color: #2563eb; cursor: pointer; }
 .up-btn-ok:hover { background: #2563eb; }
-.up-btn-max { background: #064e3b; color: #6ee7b7; border-color: #065f46; cursor: default; }
 
-/* ════════════════════════
-   STAT BUTTON（共通）
-════════════════════════ */
+/* ── stat ボタン（共通）── */
 .stat-btn {
-  background: #0d2040;
-  border: .5px solid #2563eb;
-  color: #93c5fd;
-  border-radius: 5px;
-  font-size: 12px;
-  padding: 5px 7px;
-  cursor: pointer;
-  font-family: inherit;
-  flex-shrink: 0;
-  transition: background .12s;
+  background: #0d2040; border: .5px solid #2563eb; color: #93c5fd;
+  border-radius: 5px; font-size: 12px; padding: 5px 7px; cursor: pointer;
+  font-family: inherit; flex-shrink: 0; transition: background .12s;
   touch-action: manipulation;
 }
 .stat-btn:hover { background: #1e3a5f; }
@@ -267,58 +219,18 @@ button, .card, .home-btn {
 /* ════════════════════════
    STAT POPUP
 ════════════════════════ */
-#stat-popup {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(4, 7, 20, 0.82);
-  z-index: 3000;
-  align-items: center;
-  justify-content: center;
-}
+#stat-popup { display: none; position: fixed; inset: 0; background: rgba(4,7,20,.82); z-index: 3000; align-items: center; justify-content: center; }
 #stat-popup.show { display: flex; }
-#stat-popup-box {
-  background: #0d1f3a;
-  border: 1px solid #2563eb;
-  border-radius: 14px;
-  padding: 22px 24px;
-  min-width: 240px;
-  max-width: 310px;
-  width: 85%;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-}
-#stat-popup-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #1a2a4a;
-}
-#stat-popup-icon { font-size: 28px; }
+#stat-popup-box { background: #0d1f3a; border: 1px solid #2563eb; border-radius: 14px; padding: 22px 24px; min-width: 240px; max-width: 310px; width: 85%; box-shadow: 0 8px 32px rgba(0,0,0,.6); }
+#stat-popup-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #1a2a4a; }
+#stat-popup-icon { font-size: 28px; line-height: 1; }
 #stat-popup-name { font-size: 15px; font-weight: 600; color: #f1f5f9; }
 #stat-popup-rows { display: flex; flex-direction: column; gap: 9px; margin-bottom: 18px; }
-.stat-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-.stat-row-ico  { font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; }
-.stat-row-lbl  { flex: 1; color: #64748b; }
-.stat-row-val  { color: #f1f5f9; font-weight: 600; font-family: monospace; }
-#stat-popup-close {
-  width: 100%;
-  background: #1d4ed8;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-}
+.stat-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.stat-row-ico { font-size: 14px; width: 20px; text-align: center; flex-shrink: 0; }
+.stat-row-lbl { flex: 1; color: #64748b; }
+.stat-row-val { color: #f1f5f9; font-weight: 600; font-family: monospace; }
+#stat-popup-close { width: 100%; background: #1d4ed8; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
 #stat-popup-close:hover { background: #2563eb; }
 
 /* ════════════════════════
@@ -326,51 +238,24 @@ button, .card, .home-btn {
 ════════════════════════ */
 #screen-stage { display: none; }
 #stage-list { display: flex; flex-direction: column; gap: 10px; }
-.st-card {
-  background: #0d1f3a;
-  border: .5px solid #1e3a5f;
-  border-radius: 12px;
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: border-color .12s, background .12s;
-}
+.st-card { background: #0d1f3a; border: .5px solid #1e3a5f; border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: border-color .12s, background .12s; }
 .st-card:hover  { border-color: #2563eb; }
 .st-card.st-active { border-color: #fbbf24; background: #1a1608; }
 .st-hd  { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
 .st-ico { font-size: 30px; }
 .st-nm  { font-size: 15px; font-weight: 600; color: #f1f5f9; }
 .st-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
-/* 【新機能】クリア済みバッジ */
-.st-cleared {
-  font-size: 11px;
-  color: #22c55e;
-  background: #052e16;
-  border: .5px solid #166534;
-  border-radius: 5px;
-  padding: 3px 9px;
-  margin-bottom: 8px;
-  display: inline-block;
-}
-.st-det {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #475569;
-  background: #060b1a;
-  border-radius: 6px;
-  padding: 6px 10px;
-}
+.st-cleared { font-size: 11px; color: #22c55e; background: #052e16; border: .5px solid #166534; border-radius: 5px; padding: 3px 9px; margin-bottom: 8px; display: inline-block; }
+.st-det { display: flex; justify-content: space-between; font-size: 11px; color: #475569; background: #060b1a; border-radius: 6px; padding: 6px 10px; }
 .battle-start-btn { font-size: 16px; font-weight: 700; }
 
 /* ════════════════════════
-   BATTLE SCREEN
+   BATTLE
 ════════════════════════ */
 #screen-battle { display: none; flex-direction: column; align-items: center; }
 #gw { position: relative; width: 390px; background: #0a0f2e; overflow: hidden; }
 #gc { display: block; cursor: default; touch-action: none; }
 #gc.placing { cursor: crosshair; }
-
-/* HUD */
 #hud { background: #080d1e; border-top: 1.5px solid #1a2a4a; padding: 8px 10px 10px; width: 390px; }
 .grow  { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
 .glbl  { color: #f59e0b; font-size: 11px; font-weight: 600; min-width: 80px; font-family: monospace; white-space: nowrap; }
@@ -381,51 +266,30 @@ button, .card, .home-btn {
 #upbtn:disabled { opacity: .3; cursor: not-allowed; }
 #timer { font-size: 10px; color: #334155; min-width: 34px; text-align: right; font-family: monospace; }
 
-/* 【修正】戦闘デッキ：2段グリッド（5列 × 2行） */
-#deck {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-}
+/* 戦闘デッキ：5×2 グリッド */
+#deck { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 .card {
-  height: 62px;
-  background: #0d1f3a;
-  border: .5px solid #2563eb;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 5px 2px 3px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
+  height: 62px; background: #0d1f3a; border: .5px solid #2563eb;
+  border-radius: 8px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 5px 2px 3px; cursor: pointer; position: relative;
+  overflow: hidden; user-select: none; -webkit-user-select: none;
   transition: border-color .12s, transform .1s, box-shadow .12s;
 }
-.card:hover:not(.dim):not(.oncd) { border-color: #60a5fa; transform: translateY(-1px); }
-.card:active:not(.dim):not(.oncd) { transform: scale(.96); }
+.card:hover:not(.dim):not(.oncd):not(.card-empty) { border-color: #60a5fa; transform: translateY(-1px); }
+.card:active:not(.dim):not(.oncd):not(.card-empty) { transform: scale(.96); }
 .card.selected { border-color: #fbbf24 !important; box-shadow: 0 0 8px rgba(251,191,36,.35); }
-.card.dim   { opacity: .28; cursor: not-allowed; border-color: #1e3a5f; }
-.card.oncd  { cursor: not-allowed; border-color: #374151; }
+.card.dim    { opacity: .28; cursor: not-allowed; border-color: #1e3a5f; }
+.card.oncd   { cursor: not-allowed; border-color: #374151; }
+.card.card-empty { opacity: .18; cursor: default; pointer-events: none; border-color: #0d1f3a; }
 .cico { line-height: 1; margin-bottom: 2px; }
 .cnm  { font-size: 7px; color: #93c5fd; font-weight: 500; text-align: center; line-height: 1.1; }
 .ctyp { font-size: 6px; color: #4b5563; margin-top: 1px; }
 .ccost { position: absolute; bottom: 3px; right: 3px; background: #f59e0b; color: #000; font-weight: 700; font-size: 8px; padding: 1px 4px; border-radius: 3px; font-family: monospace; }
 .cdov { position: absolute; inset: 0; background: rgba(0,0,0,.78); display: none; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; font-weight: 700; color: #f1f5f9; font-family: monospace; }
-
-/* スペルカード */
-.card-spell {
-  background: linear-gradient(135deg, #1e0a2e 0%, #3d105e 100%) !important;
-  border: 1px solid #a855f7 !important;
-}
+.card-spell { background: linear-gradient(135deg, #1e0a2e 0%, #3d105e 100%) !important; border: 1px solid #a855f7 !important; }
 .card-spell .ctyp { color: #d8b4fe; }
 
-/* phint：スマホでは非表示 */
 #phint { margin-top: 5px; text-align: center; font-size: 10px; color: #f59e0b; min-height: 13px; font-style: italic; }
-
-/* intro（操作説明）：スマホでは非表示 */
 #intro { padding: 6px 12px; background: #060b1a; border-top: .5px solid #1a2a4a; width: 390px; }
 #intro p { font-size: 9.5px; color: #334155; line-height: 1.6; text-align: center; }
 
@@ -436,26 +300,17 @@ button, .card, .home-btn {
 #osub { font-size: 13px; color: #64748b; text-align: center; max-width: 260px; line-height: 1.6; }
 #oreward { font-size: 12px; color: #94a3b8; text-align: center; line-height: 2; background: #0d1f3a; border: .5px solid #1e3a5f; border-radius: 8px; padding: 12px 20px; min-width: 200px; max-width: 270px; }
 .ov-btns { display: flex; gap: 10px; }
-#rbtn { background: #0f2a10; color: #86efac; border: .5px solid #166534; padding: 10px 22px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 500; font-family: inherit; transition: background .15s; }
+#rbtn { background: #0f2a10; color: #86efac; border: .5px solid #166534; padding: 10px 22px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 500; font-family: inherit; }
 #rbtn:hover { background: #14532d; }
-#hbtn { background: #1d4ed8; color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 500; font-family: inherit; transition: background .15s; }
+#hbtn { background: #1d4ed8; color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 500; font-family: inherit; }
 #hbtn:hover { background: #2563eb; }
 
-canvas, .card, button {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
+canvas, .card, button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
-/* ════════════════════════
-   スマホ専用：一部UI非表示
-   （hover不可 & タッチポインターで判定）
-════════════════════════ */
+/* スマホ専用 */
 @media (hover: none) and (pointer: coarse) {
-  /* 配置ヒントは不要（タップで直感的に操作） */
   #phint { display: none !important; }
-  /* 操作説明も非表示 */
   #intro { display: none !important; }
-  /* HUDパディングを詰める */
   #hud { padding: 6px 8px 8px; }
 }
 </style>
@@ -466,37 +321,21 @@ canvas, .card, button {
 <div id="screen-home" class="screen">
   <p class="home-title">⚔ <span>ニャンコ</span>RTS</p>
   <div class="home-gold" id="home-gold">💰 0 G</div>
-
   <button class="home-btn" onclick="openDeck()">
     <span class="hb-ico">🃏</span>
-    <div class="hb-text">
-      <span class="hb-main">デッキ編成</span>
-      <span class="hb-sub">出撃ユニットを選ぶ（最大10体）</span>
-    </div>
+    <div class="hb-text"><span class="hb-main">デッキ編成</span><span class="hb-sub">スロット 1〜10 にユニットを配置</span></div>
   </button>
-
   <button class="home-btn" onclick="openUpgrade()">
     <span class="hb-ico">⬆</span>
-    <div class="hb-text">
-      <span class="hb-main">ユニット強化</span>
-      <span class="hb-sub">ゴールドでユニットをLv.10まで強化</span>
-    </div>
+    <div class="hb-text"><span class="hb-main">ユニット強化</span><span class="hb-sub">ゴールドでレベルアップ（上限なし）</span></div>
   </button>
-
   <button class="home-btn" onclick="openBaseUpgrade()">
     <span class="hb-ico">🏯</span>
-    <div class="hb-text">
-      <span class="hb-main">拠点強化</span>
-      <span class="hb-sub">ゴールドで拠点の各種能力をアップ</span>
-    </div>
+    <div class="hb-text"><span class="hb-main">拠点強化</span><span class="hb-sub">ゴールドで拠点の各種能力をアップ</span></div>
   </button>
-
   <button class="home-btn" onclick="openStage()">
     <span class="hb-ico">▶</span>
-    <div class="hb-text">
-      <span class="hb-main">ステージ選択 &amp; 出撃</span>
-      <span class="hb-sub">難易度を選んで戦闘開始</span>
-    </div>
+    <div class="hb-text"><span class="hb-main">ステージ選択 &amp; 出撃</span><span class="hb-sub">難易度を選んで戦闘開始</span></div>
   </button>
 </div>
 
@@ -507,9 +346,21 @@ canvas, .card, button {
     <h2>デッキ編成</h2>
     <span class="deck-count-badge" id="deck-count">0 / 10</span>
   </div>
+
+  <!-- ヒント -->
+  <div id="deck-slot-hint"></div>
+
+  <!-- ユニットプール（スクロール） -->
   <div class="screen-scroll">
     <div id="deck-grid"></div>
   </div>
+
+  <!-- デッキプレビュー（固定） -->
+  <div class="deck-slots-section">
+    <div class="deck-slots-label">▼ デッキ（スロット 1〜10） — タップして選択 → ユニットを割り当て</div>
+    <div id="deck-slots"></div>
+  </div>
+
   <div class="screen-footer">
     <button class="back-btn" onclick="showScreen('home'); refreshHomeGold()">キャンセル</button>
     <button class="save-btn" onclick="saveDeck()">保存する</button>
@@ -528,8 +379,8 @@ canvas, .card, button {
   </div>
 </div>
 
-<!-- ═══ BASEUPGRADE ═══ -->
-<div id="screen-base-up" class="screen" style="display: none;">
+<!-- ═══ BASE UPGRADE ═══ -->
+<div id="screen-base-up" class="screen" style="display:none;">
   <div class="screen-header">
     <button class="back-btn" onclick="showScreen('home'); refreshHomeGold()">← 戻る</button>
     <h2>拠点強化</h2>
@@ -565,17 +416,12 @@ canvas, .card, button {
         <button id="upbtn">上限UP [G70]</button>
         <span id="timer">00:00</span>
       </div>
-      <!-- 【修正】2段グリッド表示。切り替えボタンは削除 -->
       <div id="deck"></div>
-      <!-- phint はスマホ時 CSS で非表示 -->
       <div id="phint"></div>
     </div>
-    <!-- intro はスマホ時 CSS で非表示 -->
     <div id="intro">
       <p>ユニットを選択 → キャンバスをクリックして好きなX位置に配置 ／ 敵拠点🏰を破壊すれば勝利</p>
     </div>
-
-    <!-- Win/Lose overlay -->
     <div id="ov">
       <div id="oico">🏆</div>
       <h2 id="otit">勝利！</h2>
@@ -601,7 +447,6 @@ canvas, .card, button {
   </div>
 </div>
 
-<!-- Flash message -->
 <div id="flash-msg"></div>
 
 <script src="unit.js"></script>
