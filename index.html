@@ -19,16 +19,9 @@ body {
 }
 
 .screen {
-  width: 100%;
-  max-width: 390px;
-  height: 100dvh;
-  background: #0a0f2e;
-  display: none;
-  flex-direction: column;
-  position: relative;
-  margin: 0 auto;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  width: 100%; max-width: 390px; height: 100dvh; background: #0a0f2e;
+  display: none; flex-direction: column; position: relative; margin: 0 auto;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 
 button { cursor: pointer; touch-action: manipulation; }
@@ -67,9 +60,7 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 }
 .save-btn:hover { background: #2563eb; }
 
-/* ════════════════════════
-   HOME
-════════════════════════ */
+/* ════════════════════════ HOME ════════════════════════ */
 #screen-home { justify-content: center; align-items: center; gap: 18px; padding: 52px 28px; }
 .home-title { font-size: 30px; font-weight: 700; color: #f1f5f9; letter-spacing: 1px; text-align: center; }
 .home-title span { color: #fbbf24; }
@@ -91,22 +82,17 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 .hb-main { font-size: 14px; font-weight: 600; }
 .hb-sub  { font-size: 11px; color: #64748b; }
 
-/* ════════════════════════
-   DECK BUILDER
-════════════════════════ */
-#screen-deck { display: none; overflow: hidden; }   /* 内部でスクロール管理 */
+/* ════════════════════════ DECK BUILDER ════════════════════════ */
+#screen-deck { display: none; overflow: hidden; }
 .deck-count-badge {
   background: #1e3a5f; color: #93c5fd; font-size: 12px; font-weight: 600;
   padding: 4px 10px; border-radius: 20px; font-family: monospace;
 }
-/* ヒント行 */
 #deck-slot-hint {
   padding: 5px 12px; font-size: 10px; color: #60a5fa;
   background: #060b1a; border-bottom: .5px solid #1a2a4a;
   text-align: center; flex-shrink: 0;
 }
-
-/* ユニットプール（スクロール可） */
 #deck-grid { display: flex; flex-direction: column; gap: 7px; }
 .dbcard {
   display: flex; align-items: center; gap: 10px; background: #0d1f3a;
@@ -126,25 +112,12 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
   font-weight: 700; padding: 1px 5px; border-radius: 3px; font-family: monospace;
 }
 
-/* ────────────────────────
-   デッキスロットグリッド（バトル HUD と同じ見た目）
-──────────────────────── */
+/* ── デッキスロットグリッド ── */
 .deck-slots-section {
-  background: #060b1a;
-  border-top: 2px solid #1a2a4a;
-  padding: 8px 8px 0;
-  flex-shrink: 0;
+  background: #060b1a; border-top: 2px solid #1a2a4a; padding: 8px 8px 0; flex-shrink: 0;
 }
-.deck-slots-label {
-  font-size: 9px; color: #334155; text-align: center;
-  margin-bottom: 5px; letter-spacing: 0.5px;
-}
-#deck-slots {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-  padding-bottom: 8px;
-}
+.deck-slots-label { font-size: 9px; color: #334155; text-align: center; margin-bottom: 5px; letter-spacing: 0.5px; }
+#deck-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding-bottom: 8px; }
 .ds-slot {
   height: 66px; background: #0a1628; border: .5px solid #1a2a4a;
   border-radius: 8px; display: flex; flex-direction: column; align-items: center;
@@ -152,35 +125,18 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
   transition: border-color .12s, box-shadow .12s;
 }
 .ds-slot:active { transform: scale(.96); }
-.ds-slot.ds-selected {
-  border-color: #fbbf24 !important;
-  box-shadow: 0 0 10px rgba(251,191,36,.4);
-}
+.ds-slot.ds-selected { border-color: #fbbf24 !important; box-shadow: 0 0 10px rgba(251,191,36,.4); }
 .ds-slot.ds-filled { background: #0d1f3a; border-color: #2563eb; }
 .ds-slot.ds-spell  { background: linear-gradient(135deg, #1e0a2e, #3d105e); border-color: #a855f7; }
-.ds-num {
-  position: absolute; top: 2px; left: 4px;
-  font-size: 8px; color: #334155; font-family: monospace; font-weight: 700;
-}
+.ds-num { position: absolute; top: 2px; left: 4px; font-size: 8px; color: #334155; font-family: monospace; font-weight: 700; }
 .ds-ico { line-height: 1; margin-bottom: 1px; }
 .ds-ico-empty { font-size: 16px; color: #1e3a5f; }
 .ds-nm   { font-size: 6.5px; color: #93c5fd; text-align: center; line-height: 1.1; max-width: 90%; overflow: hidden; }
-.ds-cost {
-  position: absolute; bottom: 2px; right: 2px;
-  font-size: 7px; background: #f59e0b; color: #000; font-weight: 700;
-  padding: 1px 3px; border-radius: 3px; font-family: monospace;
-}
-.ds-del {
-  position: absolute; top: 1px; right: 2px;
-  font-size: 9px; color: #ef4444; background: transparent;
-  border: none; cursor: pointer; line-height: 1; padding: 2px;
-  font-family: inherit; touch-action: manipulation;
-}
+.ds-cost { position: absolute; bottom: 2px; right: 2px; font-size: 7px; background: #f59e0b; color: #000; font-weight: 700; padding: 1px 3px; border-radius: 3px; font-family: monospace; }
+.ds-del  { position: absolute; top: 1px; right: 2px; font-size: 9px; color: #ef4444; background: transparent; border: none; cursor: pointer; line-height: 1; padding: 2px; font-family: inherit; touch-action: manipulation; }
 .ds-del:hover { color: #fca5a5; }
 
-/* ════════════════════════
-   UPGRADE
-════════════════════════ */
+/* ════════════════════════ UPGRADE ════════════════════════ */
 #screen-upgrade { display: none; }
 .upgrade-gold-bar {
   background: #0d1f3a; border-bottom: 1.5px solid #1a2a4a;
@@ -198,7 +154,6 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 .up-lv   { font-size: 10px; color: #fbbf24; font-family: monospace; }
 .up-stat { font-size: 10px; color: #64748b; margin-top: 2px; }
 .up-stat b { color: #93c5fd; font-weight: 500; }
-/* レベル上限なしのためプログレスバーは不要 */
 .up-btn {
   background: #111827; color: #64748b; border: .5px solid #1e3a5f;
   border-radius: 7px; padding: 7px 10px; font-size: 11px; font-weight: 600;
@@ -207,18 +162,14 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 .up-btn-ok { background: #1d4ed8; color: #fff; border-color: #2563eb; cursor: pointer; }
 .up-btn-ok:hover { background: #2563eb; }
 
-/* ── stat ボタン（共通）── */
 .stat-btn {
   background: #0d2040; border: .5px solid #2563eb; color: #93c5fd;
   border-radius: 5px; font-size: 12px; padding: 5px 7px; cursor: pointer;
-  font-family: inherit; flex-shrink: 0; transition: background .12s;
-  touch-action: manipulation;
+  font-family: inherit; flex-shrink: 0; transition: background .12s; touch-action: manipulation;
 }
 .stat-btn:hover { background: #1e3a5f; }
 
-/* ════════════════════════
-   STAT POPUP
-════════════════════════ */
+/* ════════════════════════ STAT POPUP ════════════════════════ */
 #stat-popup { display: none; position: fixed; inset: 0; background: rgba(4,7,20,.82); z-index: 3000; align-items: center; justify-content: center; }
 #stat-popup.show { display: flex; }
 #stat-popup-box { background: #0d1f3a; border: 1px solid #2563eb; border-radius: 14px; padding: 22px 24px; min-width: 240px; max-width: 310px; width: 85%; box-shadow: 0 8px 32px rgba(0,0,0,.6); }
@@ -233,9 +184,7 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 #stat-popup-close { width: 100%; background: #1d4ed8; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
 #stat-popup-close:hover { background: #2563eb; }
 
-/* ════════════════════════
-   STAGE SELECT
-════════════════════════ */
+/* ════════════════════════ STAGE SELECT ════════════════════════ */
 #screen-stage { display: none; }
 #stage-list { display: flex; flex-direction: column; gap: 10px; }
 .st-card { background: #0d1f3a; border: .5px solid #1e3a5f; border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: border-color .12s, background .12s; }
@@ -249,9 +198,7 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 .st-det { display: flex; justify-content: space-between; font-size: 11px; color: #475569; background: #060b1a; border-radius: 6px; padding: 6px 10px; }
 .battle-start-btn { font-size: 16px; font-weight: 700; }
 
-/* ════════════════════════
-   BATTLE
-════════════════════════ */
+/* ════════════════════════ BATTLE ════════════════════════ */
 #screen-battle { display: none; flex-direction: column; align-items: center; }
 #gw { position: relative; width: 390px; background: #0a0f2e; overflow: hidden; }
 #gc { display: block; cursor: default; touch-action: none; }
@@ -307,7 +254,6 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 
 canvas, .card, button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
-/* スマホ専用 */
 @media (hover: none) and (pointer: coarse) {
   #phint { display: none !important; }
   #intro { display: none !important; }
@@ -346,21 +292,14 @@ canvas, .card, button { touch-action: manipulation; -webkit-tap-highlight-color:
     <h2>デッキ編成</h2>
     <span class="deck-count-badge" id="deck-count">0 / 10</span>
   </div>
-
-  <!-- ヒント -->
   <div id="deck-slot-hint"></div>
-
-  <!-- ユニットプール（スクロール） -->
   <div class="screen-scroll">
     <div id="deck-grid"></div>
   </div>
-
-  <!-- デッキプレビュー（固定） -->
   <div class="deck-slots-section">
     <div class="deck-slots-label">▼ デッキ（スロット 1〜10） — タップして選択 → ユニットを割り当て</div>
     <div id="deck-slots"></div>
   </div>
-
   <div class="screen-footer">
     <button class="back-btn" onclick="showScreen('home'); refreshHomeGold()">キャンセル</button>
     <button class="save-btn" onclick="saveDeck()">保存する</button>
@@ -452,6 +391,7 @@ canvas, .card, button { touch-action: manipulation; -webkit-tap-highlight-color:
 <script src="unit.js"></script>
 <script src="enemies.js"></script>
 <script src="wave.js"></script>
+<script src="skills.js"></script>  <!-- unit.js・enemies.js の後、main.js の前 -->
 <script src="ui.js"></script>
 <script src="main.js"></script>
 <script src="home.js"></script>
