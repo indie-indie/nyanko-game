@@ -55,6 +55,7 @@ function startGame(stageConfig) {
     selectedUnit: null,
     eTimer: 0, eNext: 4.5,
     shake: 0,
+    ended: false,     // リザルト表示済みフラグ（endGame二重呼び出し防止）
     dyingBase: null,  // { win:bool, timer:float } — HP0時の揺れ演出
     stageMult: stage.enemyMult || 1.0,
     cdMult: cdMult,
@@ -545,8 +546,9 @@ function update(dt) {
 }
 
 function endGame(win) {
-  if (!g.on) return;
-  g.on = false;
+  if (!g || g.ended) return;
+  g.ended = true;
+  g.on    = false;
   if (win && typeof recordStageClear === 'function' && typeof selectedStage !== 'undefined' && selectedStage) {
     recordStageClear(selectedStage.id, g.t);
   }
