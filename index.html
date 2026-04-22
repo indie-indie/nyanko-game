@@ -184,6 +184,19 @@ button, .card, .home-btn { -webkit-tap-highlight-color: transparent; }
 #stat-popup-close { width: 100%; background: #1d4ed8; color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
 #stat-popup-close:hover { background: #2563eb; }
 
+/* ════════════════════════ ENEMY POPUP（ステージ敵確認）════════════════════════ */
+#enemy-popup { display: none; position: fixed; inset: 0; background: rgba(4,7,20,.82); z-index: 3000; align-items: center; justify-content: center; }
+#enemy-popup.show { display: flex; }
+#enemy-popup-box { background: #0d1f3a; border: 1px solid #a855f7; border-radius: 14px; padding: 20px 22px; min-width: 260px; max-width: 340px; width: 90%; max-height: 80dvh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,.6); }
+#enemy-popup-name { font-size: 14px; font-weight: 700; color: #f1f5f9; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #1a2a4a; }
+#enemy-popup-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+.ep-row { display: flex; align-items: center; gap: 8px; background: #060b1a; border: .5px solid #1e3a5f; border-radius: 8px; padding: 7px 10px; }
+.ep-ico { font-size: 20px; flex-shrink: 0; width: 26px; text-align: center; }
+.ep-nm  { flex: 1; font-size: 13px; font-weight: 500; color: #e2e8f0; }
+.ep-tag { font-size: 10px; color: #60a5fa; background: #0d2040; border: .5px solid #1e3a5f; padding: 2px 7px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+.st-info-btn { background: #2d1060; color: #c084fc; border: .5px solid #7e22ce; border-radius: 6px; font-size: 10px; padding: 4px 9px; cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: background .12s; touch-action: manipulation; }
+.st-info-btn:hover { background: #4c1d95; }
+
 /* ════════════════════════ STAGE SELECT ════════════════════════ */
 #screen-stage { display: none; }
 #stage-list { display: flex; flex-direction: column; gap: 10px; }
@@ -383,6 +396,15 @@ canvas, .card, button { touch-action: manipulation; -webkit-tap-highlight-color:
     </div>
     <div id="stat-popup-rows"></div>
     <button id="stat-popup-close" onclick="closeStatPopup()">閉じる</button>
+  </div>
+</div>
+
+<!-- ═══ ENEMY POPUP（ステージ敵確認）═══ -->
+<div id="enemy-popup">
+  <div id="enemy-popup-box">
+    <div id="enemy-popup-name"></div>
+    <div id="enemy-popup-list"></div>
+    <button id="enemy-popup-close" onclick="closeEnemyPopup()" style="width:100%;background:#4c1d95;color:#f3e8ff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">閉じる</button>
   </div>
 </div>
 

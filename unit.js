@@ -4,10 +4,9 @@ var W = 390, BH = 510;
 var EBY = 58, PBY = BH - 60;
 var ESY = EBY + 52, PSY = PBY - 52;
 
-// ── 特攻ボーナス倍率 ─────────────────────────────────
-// affinity が対象の attr に一致したときのダメージ倍率
-// ここを変更すれば全ユニットの特攻倍率が一括変更される
-var AFFINITY_BONUS = 1.5;
+// ── 特攻倍率デフォルト値 ────────────────────────────
+// crt フィールドを省略した場合に使用されるフォールバック値
+var AFFINITY_BONUS_DEFAULT = 1.5;
 
 // ── 属性一覧（attr）─────────────────────────────────
 // 'beast'    : 動物・獣系
@@ -24,7 +23,8 @@ var AFFINITY_BONUS = 1.5;
 // img      : 画像相対パス（拡張子あり推奨。省略時は絵文字）
 //            ※ 拡張子を省略すると .png が自動付与されます
 // attr     : このユニットの属性（特攻を受ける側）
-// affinity : このユニットが特攻を持つ属性（対象の attr と一致でダメージ×AFFINITY_BONUS）
+// affinity : このユニットが特攻を持つ属性（対象の attr と一致でダメージ×crt）
+// crt      : 特攻倍率（例: 1.5 = 150%ダメージ）省略時は AFFINITY_BONUS_DEFAULT
 // skills   : [ { trigger, effect, value?, range?, duration? }, ... ]
 //   trigger :攻撃ヒット時 'onHit' | 攻撃したとき'onAttack' | 死亡したとき'onDeath'
 //   effect  : サンダー'thunder' | スロウ'slow' | 毒'poison' | 回復'heal' | 分裂'split' | 凍結'freeze' | 貫通'pierce'
@@ -33,88 +33,88 @@ var PLAYER_UNITS = {
   nyanko: {
     n:'ニャンコ', e:'🐱', cost:20, hp:100, dmg:13, spd:40, rng:30, ar:1.0,
     type:'ground', targets:'ground', cd:1.0, size:0.8, rew:1, zone:'own', unlockCost:0,
-    attr:'beast', affinity:null
+    attr:'beast', affinity:null, crt:1.5
   },
   wanko: {
     n:'ワンコ', e:'🐶', cost:25, hp:80, dmg:20, spd:30, rng:30, ar:1.0,
     type:'ground', targets:'ground', cd:2.0, size:1.0, rew:1, zone:'own', unlockCost:0,
-    attr:'beast', affinity:null,
+    attr:'beast', affinity:null, crt:1.5,
     skills: [{ trigger:'onDeath', effect:'split' }]
   },
   bolt: {
     n:'ボルト', e:'⚡', cost:30, hp:50, dmg:10, spd:100, rng:40, ar:0.75,
     type:'ground', targets:'ground', cd:1.0, size:0.8, rew:1.5, zone:'own', unlockCost:0,
-    attr:'beast', affinity:null
+    attr:'beast', affinity:null, crt:1.5
   },
   soldier: {
     n:'ソルジャー', e:'🗡️', cost:40, hp:150, dmg:30, spd:60, rng:50, ar:1.0,
     type:'ground', targets:'ground', cd:1.5, size:1.1, rew:1.2, zone:'own', unlockCost:0,
-    attr:'humanoid', affinity:'beast'
+    attr:'humanoid', affinity:'beast', crt:1.5
   },
   archer: {
     n:'アーチャー', e:'🏹', cost:30, hp:80, dmg:15, spd:50, rng:120, ar:0.75,
     type:'ground', targets:'both', cd:1.0, size:0.9, rew:1, zone:'own', unlockCost:0,
-    attr:'humanoid', affinity:null
+    attr:'humanoid', affinity:null, crt:1.5
   },
   golem: {
     n:'ゴーレム', e:'🛡️', img:'nyanko-game/image/golem', cost:60, hp:500, dmg:15, spd:25, rng:30, ar:1.5,
     type:'ground', targets:'ground', isBase:true, cd:2.5, size:1.5, rew:2, zone:'own', unlockCost:250,
-    attr:'construct', affinity:'humanoid'
+    attr:'construct', affinity:'humanoid', crt:1.8
   },
   sniper: {
     n:'スナイパー', e:'🎯', cost:40, hp:50, dmg:40, spd:40, rng:150, ar:1.6,
     type:'ground', targets:'both', cd:3.0, size:0.9, rew:1, zone:'own', unlockCost:250,
-    attr:'humanoid', affinity:'machine',
+    attr:'humanoid', affinity:'machine', crt:2.0,
     skills: [{ trigger:'onHit', effect:'pierce' }]
   },
   gatling: {
     n:'ガトリング', e:'🔭', cost:50, hp:30, dmg:8, spd:20, rng:80, ar:0.3,
     type:'ground', targets:'both', cd:4.0, size:0.7, rew:1, zone:'own', unlockCost:250,
-    attr:'construct', affinity:'beast',
+    attr:'construct', affinity:'beast', crt:1.5,
     skills: [{ trigger:'onHit', effect:'pierce' }]
   },
   assassin: {
     n:'アサシン', e:'🥷', cost:35, hp:80, dmg:90, spd:90, rng:20, ar:0.8,
     type:'ground', targets:'ground', cd:5.0, size:0.8, rew:1, zone:'all', unlockCost:350,
-    attr:'humanoid', affinity:'humanoid',
+    attr:'humanoid', affinity:'humanoid', crt:1.6,
     skills: [{ trigger:'onHit', effect:'poison' }]
   },
   mage: {
     n:'メイジ', e:'🔥', cost:50, hp:120, dmg:100, spd:30, rng:120, ar:1.5, area:10,
     type:'ground', targets:'both', cd:5.5, size:1.0, rew:1, zone:'own', unlockCost:400,
-    attr:'humanoid', affinity:'undead'
+    attr:'humanoid', affinity:'undead', crt:2.0
   },
   electricshot: {
     n:'エレキショット', e:'🌩️', cost:60, hp:90, dmg:30, spd:30, rng:120, ar:1.2, area:5,
     type:'ground', targets:'both', cd:6.5, size:1.0, rew:1, zone:'own', unlockCost:400,
-    attr:'construct', affinity:'machine',
+    attr:'construct', affinity:'machine', crt:2.0,
     skills: [{ trigger:'onHit', effect:'thunder' }]
   },
   wolf: {
     n:'ウルフ', e:'🐺', cost:20, hp:60, dmg:20, spd:80, rng:50, ar:0.6,
     type:'ground', targets:'ground', cd:1.0, size:0.9, rew:2, zone:'own', unlockCost:200,
-    attr:'beast', affinity:null
+    attr:'beast', affinity:null, crt:1.5
   },
   wyvern: {
     n:'ワイバーン', e:'🦇', cost:100, hp:400, dmg:50, spd:50, rng:110, ar:1.5,
     type:'air', targets:'base', cd:10.0, size:1.4, rew:3, zone:'own', unlockCost:400,
-    attr:'beast', affinity:'humanoid'
+    attr:'beast', affinity:'humanoid', crt:1.7
   },
   cannoner: {
     n:'キャノン', e:'💣', cost:50, hp:180, dmg:50, spd:30, rng:130, ar:2.0, area:50,
     type:'ground', targets:'ground', cd:5.0, size:1.2, rew:1, zone:'own', unlockCost:500,
-    attr:'construct', affinity:'undead'
+    attr:'construct', affinity:'undead', crt:1.8
   },
   dragon: {
     n:'ドラゴン', e:'🐉', cost:100, hp:250, dmg:80, spd:30, rng:100, ar:1.5, area:40,
     type:'air', targets:'both', cd:10.0, size:1.3, rew:1, zone:'own', unlockCost:700,
-    attr:'beast', affinity:'machine',
+    attr:'beast', affinity:'machine', crt:2.0,
     skills: [{ trigger:'onHit', effect:'freeze' }]
   },
   bahamut: {
     n:'バハムート', e:'🐲', cost:500, hp:1000, dmg:300, spd:8, rng:100, ar:5.0, area:80,
     type:'ground', targets:'both', cd:30.0, size:2.0, rew:1, zone:'own', unlockCost:1000,
-    attr:'beast', affinity:null
+    attr:'beast', affinity:null, crt:1.5
   },
   fireball: {
     n:'火炎弾', e:'🔥', cost:50, type:'spell', effect:'damage', dmg:80, area:70, cd:8, unlockCost:300
@@ -152,6 +152,7 @@ function mkUnit(defId, team, x, y, d) {
     size    : d.size   || 1.0,
     attr    : d.attr   || null,       // 属性（特攻を受ける側）
     affinity: d.affinity || null,     // 特攻対象属性
+    crt     : d.crt    || AFFINITY_BONUS_DEFAULT,  // 特攻倍率
     // スキル（配列参照をコピー。null でも動作する）
     skills  : d.skills ? d.skills.slice() : null,
     x: x, y: y,

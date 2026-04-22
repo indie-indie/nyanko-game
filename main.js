@@ -55,6 +55,7 @@ function startGame(stageConfig) {
     selectedUnit: null,
     eTimer: 0, eNext: 4.5,
     shake: 0,
+    dyingBase: null,  // { win:bool, timer:float } — HP0時の揺れ演出
     stageMult: stage.enemyMult || 1.0,
     cdMult: cdMult,
     stageWaves: stage.waves || [],
@@ -150,6 +151,8 @@ function handleCanvasClick(e) {
     spd: d.spd, rng: d.rng, ar: d.ar, type: d.type, targets: d.targets,
     isBase: d.isBase || false, size: d.size, area: d.area || 0,
     heal: d.heal || 0, rew: d.rew || 1, cd: d.cd,
+    attr: d.attr || null, affinity: d.affinity || null,
+    crt: d.crt || (typeof AFFINITY_BONUS_DEFAULT !== 'undefined' ? AFFINITY_BONUS_DEFAULT : 1.5),
     skills: d.skills || null
   };
   g.units.push(mkUnit(id, 'player', x, y, scaledD));
@@ -227,7 +230,8 @@ function hitUnit(tgt, amt, attacker) {
   if (!tgt || tgt.dead) return;
   // 特攻ボーナス：攻撃者の affinity が対象の attr に一致すればダメージ倍増
   if (attacker && attacker.affinity && tgt.attr && attacker.affinity === tgt.attr) {
-    amt = Math.round(amt * AFFINITY_BONUS);
+    var crtMult = attacker.crt || (typeof AFFINITY_BONUS_DEFAULT !== 'undefined' ? AFFINITY_BONUS_DEFAULT : 1.5);
+    amt = Math.round(amt * crtMult);
     // 特攻エフェクト（金色テキスト）
     parts.push({
       type:'text', text:'特攻!', col:'#fbbf24',
@@ -532,8 +536,12 @@ function update(dt) {
   }
   parts = parts.filter(function(p) { return p.life > 0; });
 
-  if (g.eb.hp <= 0) { endGame(true);  return; }
-  if (g.pb.hp <= 0) { endGame(false); return; }
+  if ((g.eb.hp <= 0 || g.pb.hp <= 0) && !g.dyingBase) {
+    var win = g.eb.hp <= 0;
+    g.dyingBase = { win: win, timer: 1.0 };
+    g.on = false;  // AIとスポーンを停止
+    return;
+  }
 }
 
 function endGame(win) {
@@ -559,15 +567,26 @@ function rrect(x, y, w, h, r) {
 }
 
 function drawBase(team, x, y, base) {
+  var isDying = g.dyingBase && ((team === 'enemy') === g.dyingBase.win);
+  cx.save();
+  if (isDying) {
+    // HP0拠点を激しく揺らす
+    cx.translate(
+      (Math.random() - 0.5) * 10,
+      (Math.random() - 0.5) * 10
+    );
+  }
   cx.font='40px serif'; cx.textAlign='center'; cx.textBaseline='middle';
   cx.fillText(team==='player'?'🏯':'🏰', x, y);
-  var bw=120, bh=9, bx=x-60, by=team==='player'?y+30:y-39;
-  cx.fillStyle='#0c1627'; rrect(bx,by,bw,bh,4); cx.fill();
+  // HPバーを1.2倍（元:幅120,高さ9 → 幅144,高さ11）
+  var bw=144, bh=11, bx=x-72, by=team==='player'?y+30:y-42;
+  cx.fillStyle='#0c1627'; rrect(bx,by,bw,bh,5); cx.fill();
   var r=Math.max(0,base.hp/base.max);
-  if(r>0){ cx.fillStyle=r>.6?'#22c55e':r>.3?'#f59e0b':'#ef4444'; rrect(bx,by,bw*r,bh,4); cx.fill(); }
-  cx.fillStyle='rgba(255,255,255,.65)'; cx.font='8px sans-serif';
+  if(r>0){ cx.fillStyle=r>.6?'#22c55e':r>.3?'#f59e0b':'#ef4444'; rrect(bx,by,bw*r,bh,5); cx.fill(); }
+  cx.fillStyle='rgba(255,255,255,.7)'; cx.font='8.5px sans-serif';
   cx.textAlign='center'; cx.textBaseline='middle';
   cx.fillText(Math.ceil(base.hp)+' / '+base.max, x, by+bh/2);
+  cx.restore();
 }
 
 function drawUnitIcon(u, x, y) {
@@ -766,6 +785,15 @@ function loop(ts) {
   var dt = Math.min((ts - prev_) / 1000, 0.05);
   prev_ = ts;
   if (g && g.on) update(dt);
+  // 拠点破壊の揺れ演出タイマー
+  if (g && g.dyingBase) {
+    g.dyingBase.timer -= dt;
+    if (g.dyingBase.timer <= 0) {
+      var win = g.dyingBase.win;
+      g.dyingBase = null;
+      endGame(win);
+    }
+  }
   if (g) render();
   raf_ = requestAnimationFrame(loop);
 }

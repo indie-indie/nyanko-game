@@ -395,6 +395,51 @@ var ATTR_LABEL = {
   construct:'🛡 構造物系'
 };
 
+// ── ステージ出現敵ポップアップ ────────────────────────
+function showStageEnemies(stageConfig) {
+  var popup = document.getElementById('enemy-popup');
+  var nameEl = document.getElementById('enemy-popup-name');
+  var listEl = document.getElementById('enemy-popup-list');
+  if (!popup || !listEl) return;
+
+  // waves＋emergencySpawns＋scheduledから全ユニットIDを収集（重複なし）
+  var seen = {};
+  var ids  = [];
+  function collect(id) {
+    if (id && !seen[id]) { seen[id] = true; ids.push(id); }
+  }
+  (stageConfig.waves || []).forEach(function(w) {
+    (w.pool || []).forEach(function(p) { collect(p.id); });
+    (w.scheduled || []).forEach(function(s) { collect(s.id); });
+  });
+  (stageConfig.emergencySpawns || []).forEach(function(es) {
+    (es.spawns || []).forEach(function(sp) { collect(sp.id); });
+  });
+
+  nameEl.textContent = stageConfig.icon + ' ' + stageConfig.name + ' — 出現する敵';
+
+  var typeLabel = { ground:'⚔ 地上', air:'✈ 飛行', both:'⚔✈ 両方', base:'🏯 拠点狙い' };
+  listEl.innerHTML = ids.map(function(id) {
+    var d = (typeof ENEMY_UNITS !== 'undefined') ? ENEMY_UNITS[id] : null;
+    if (!d) return '';
+    var tl = typeLabel[d.type] || d.type;
+    var al = d.attr ? (ATTR_LABEL[d.attr] || d.attr) : '—';
+    return '<div class="ep-row">' +
+      '<span class="ep-ico">' + d.e + '</span>' +
+      '<span class="ep-nm">' + d.n + '</span>' +
+      '<span class="ep-tag">' + tl + '</span>' +
+      '<span class="ep-tag" style="color:#a78bfa;background:#1a0a2e;border-color:#4c1d95">' + al + '</span>' +
+    '</div>';
+  }).join('');
+
+  popup.classList.add('show');
+}
+
+function closeEnemyPopup() {
+  var popup = document.getElementById('enemy-popup');
+  if (popup) popup.classList.remove('show');
+}
+
 function showUnitStats(id) {
   var d  = PLAYER_UNITS[id];
   var lv = SAVE.levels[id] || 0;
@@ -433,8 +478,8 @@ function showUnitStats(id) {
     html += statRow('🏷', '属性', d.attr ? (ATTR_LABEL[d.attr] || d.attr) : '—');
     if (d.affinity) {
       var afLabel = ATTR_LABEL[d.affinity] || d.affinity;
-      var bonus   = typeof AFFINITY_BONUS !== 'undefined' ? Math.round(AFFINITY_BONUS * 100) + '%' : '150%';
-      html += statRow('⚔', '特攻対象', afLabel + ' <span style="color:#fbbf24;font-size:10px">×' + bonus + '</span>');
+      var crtPct  = Math.round((d.crt || 1.5) * 100) + '%';
+      html += statRow('⚔', '特攻対象', afLabel + ' <span style="color:#fbbf24;font-size:10px">×' + crtPct + '</span>');
     } else {
       html += statRow('⚔', '特攻対象', '—');
     }
@@ -548,7 +593,8 @@ function renderStageSelect() {
     card.innerHTML =
       '<div class="st-hd">' +
         '<span class="st-ico">' + s.icon + '</span>' +
-        '<div><div class="st-nm">' + s.name + '</div><div class="st-sub">' + s.sub + '</div></div>' +
+        '<div style="flex:1"><div class="st-nm">' + s.name + '</div><div class="st-sub">' + s.sub + '</div></div>' +
+        '<button class="st-info-btn" title="出現する敵を確認">👾 敵確認</button>' +
       '</div>' +
       clearBadge +
       '<div class="st-det">' +
@@ -556,6 +602,11 @@ function renderStageSelect() {
         '<span>拠点HP ' + s.enemyBaseHP + '</span>' +
         '<span>基礎報酬 💰' + s.baseReward + 'G</span>' +
       '</div>';
+    // 敵確認ボタン（カード選択と分離）
+    card.querySelector('.st-info-btn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      showStageEnemies(s);
+    });
     card.addEventListener('click', function() { selectedStage = s; renderStageSelect(); });
     el.appendChild(card);
   });
