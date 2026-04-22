@@ -385,6 +385,16 @@ var SKILL_DISPLAY = {
   pierce:  { ico:'➡',  label:'貫通',     desc:'弾が射程全体を貫通してヒット' }
 };
 
+// 属性の日本語ラベル
+var ATTR_LABEL = {
+  beast:    '🐾 獣系',
+  humanoid: '👤 人間系',
+  machine:  '⚙ 機械系',
+  undead:   '💀 不死系',
+  magic:    '🔮 魔法系',
+  construct:'🛡 構造物系'
+};
+
 function showUnitStats(id) {
   var d  = PLAYER_UNITS[id];
   var lv = SAVE.levels[id] || 0;
@@ -417,6 +427,17 @@ function showUnitStats(id) {
       statRow('💨', '移動速度',      d.spd) +
       statRow('🏹', 'ターゲット',    targLabel) +
       (d.isBase ? statRow('🏯', '拠点認識', 'あり') : '');
+
+    // 属性・特攻表示
+    html += '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1a2a4a;"></div>';
+    html += statRow('🏷', '属性', d.attr ? (ATTR_LABEL[d.attr] || d.attr) : '—');
+    if (d.affinity) {
+      var afLabel = ATTR_LABEL[d.affinity] || d.affinity;
+      var bonus   = typeof AFFINITY_BONUS !== 'undefined' ? Math.round(AFFINITY_BONUS * 100) + '%' : '150%';
+      html += statRow('⚔', '特攻対象', afLabel + ' <span style="color:#fbbf24;font-size:10px">×' + bonus + '</span>');
+    } else {
+      html += statRow('⚔', '特攻対象', '—');
+    }
   }
 
   // スキル表示

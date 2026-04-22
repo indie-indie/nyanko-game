@@ -4,98 +4,117 @@ var W = 390, BH = 510;
 var EBY = 58, PBY = BH - 60;
 var ESY = EBY + 52, PSY = PBY - 52;
 
+// ── 特攻ボーナス倍率 ─────────────────────────────────
+// affinity が対象の attr に一致したときのダメージ倍率
+// ここを変更すれば全ユニットの特攻倍率が一括変更される
+var AFFINITY_BONUS = 1.5;
+
+// ── 属性一覧（attr）─────────────────────────────────
+// 'beast'    : 動物・獣系
+// 'humanoid' : 人間・亜人系
+// 'machine'  : 機械・ロボット系
+// 'undead'   : 不死・霊体系
+// 'magic'    : 魔法・精霊系
+// 'construct': 構造物・ゴーレム系
+// （随時追加可能）
+
 // ── ユニット定義フィールド凡例 ──────────────────────────
-// targets : 地上'ground' | 空'air' | 両方'both' | 拠点'base'
-// isBase  : true = targets:'base' の相手から攻撃される
-// img     : 画像相対パス（省略時は絵文字）
-// skills  : [ { trigger, effect, value?, range?, duration? }, ... ]
+// targets  : 地上'ground' | 空'air' | 両方'both' | 拠点'base'
+// isBase   : true = targets:'base' の相手から攻撃される
+// img      : 画像相対パス（拡張子あり推奨。省略時は絵文字）
+//            ※ 拡張子を省略すると .png が自動付与されます
+// attr     : このユニットの属性（特攻を受ける側）
+// affinity : このユニットが特攻を持つ属性（対象の attr と一致でダメージ×AFFINITY_BONUS）
+// skills   : [ { trigger, effect, value?, range?, duration? }, ... ]
 //   trigger :攻撃ヒット時 'onHit' | 攻撃したとき'onAttack' | 死亡したとき'onDeath'
 //   effect  : サンダー'thunder' | スロウ'slow' | 毒'poison' | 回復'heal' | 分裂'split' | 凍結'freeze' | 貫通'pierce'
-//
-//  テンプレ↓↓
-//　死亡時に分裂：skills: [{ trigger:'onDeath', effect:'split' }]
-//　ヒット時にスロウ：skills: [{ trigger:'onHit', effect:'slow' }]
-//　貫通：skills: [{ trigger:'onHit', effect:'pierce' }]
-//　タゲリセット：skills: [{ trigger:'onHit', effect:'thunder' }]
-//　攻撃時回復：skills: [{ trigger:'onAttack', effect:'heal', value:6, range:75 }]
-//　ヒット時回復：skills: [{ trigger:'onHit', effect:'heal', value:6, range:75 }]
-//
 
 var PLAYER_UNITS = {
   nyanko: {
     n:'ニャンコ', e:'🐱', cost:20, hp:100, dmg:13, spd:40, rng:30, ar:1.0,
-    type:'ground', targets:'ground', cd:1.0, size:0.8, rew:1, zone:'own', unlockCost:0
+    type:'ground', targets:'ground', cd:1.0, size:0.8, rew:1, zone:'own', unlockCost:0,
+    attr:'beast', affinity:null
   },
   wanko: {
     n:'ワンコ', e:'🐶', cost:25, hp:80, dmg:20, spd:30, rng:30, ar:1.0,
     type:'ground', targets:'ground', cd:2.0, size:1.0, rew:1, zone:'own', unlockCost:0,
-    // 死亡時に 2 体に分裂（序盤の壁役として機能）
+    attr:'beast', affinity:null,
     skills: [{ trigger:'onDeath', effect:'split' }]
   },
   bolt: {
     n:'ボルト', e:'⚡', cost:30, hp:50, dmg:10, spd:100, rng:40, ar:0.75,
-    type:'ground', targets:'ground', cd:1.0, size:0.8, rew:1.5, zone:'own', unlockCost:0
+    type:'ground', targets:'ground', cd:1.0, size:0.8, rew:1.5, zone:'own', unlockCost:0,
+    attr:'beast', affinity:null
   },
   soldier: {
     n:'ソルジャー', e:'🗡️', cost:40, hp:150, dmg:30, spd:60, rng:50, ar:1.0,
-    type:'ground', targets:'ground', cd:1.5, size:1.1, rew:1.2, zone:'own', unlockCost:0
+    type:'ground', targets:'ground', cd:1.5, size:1.1, rew:1.2, zone:'own', unlockCost:0,
+    attr:'humanoid', affinity:'beast'
   },
   archer: {
     n:'アーチャー', e:'🏹', cost:30, hp:80, dmg:15, spd:50, rng:120, ar:0.75,
     type:'ground', targets:'both', cd:1.0, size:0.9, rew:1, zone:'own', unlockCost:0,
+    attr:'humanoid', affinity:null
   },
   golem: {
     n:'ゴーレム', e:'🛡️', img:'nyanko-game/image/golem', cost:60, hp:500, dmg:15, spd:25, rng:30, ar:1.5,
-    type:'ground', targets:'ground', isBase:true, cd:2.5, size:1.5, rew:2, zone:'own', unlockCost:250
+    type:'ground', targets:'ground', isBase:true, cd:2.5, size:1.5, rew:2, zone:'own', unlockCost:250,
+    attr:'construct', affinity:'humanoid'
   },
   sniper: {
     n:'スナイパー', e:'🎯', cost:40, hp:50, dmg:40, spd:40, rng:150, ar:1.6,
     type:'ground', targets:'both', cd:3.0, size:0.9, rew:1, zone:'own', unlockCost:250,
-    // 弾が射程全体を貫通する
+    attr:'humanoid', affinity:'machine',
     skills: [{ trigger:'onHit', effect:'pierce' }]
   },
   gatling: {
     n:'ガトリング', e:'🔭', cost:50, hp:30, dmg:8, spd:20, rng:80, ar:0.3,
     type:'ground', targets:'both', cd:4.0, size:0.7, rew:1, zone:'own', unlockCost:250,
-    // 弾が射程全体を貫通する
+    attr:'construct', affinity:'beast',
     skills: [{ trigger:'onHit', effect:'pierce' }]
   },
   assassin: {
     n:'アサシン', e:'🥷', cost:35, hp:80, dmg:90, spd:90, rng:20, ar:0.8,
     type:'ground', targets:'ground', cd:5.0, size:0.8, rew:1, zone:'all', unlockCost:350,
-      // 攻撃で毒を付与
-      skills: [{ trigger:'onHit', effect:'poison' }]
+    attr:'humanoid', affinity:'humanoid',
+    skills: [{ trigger:'onHit', effect:'poison' }]
   },
   mage: {
     n:'メイジ', e:'🔥', cost:50, hp:120, dmg:100, spd:30, rng:120, ar:1.5, area:10,
     type:'ground', targets:'both', cd:5.5, size:1.0, rew:1, zone:'own', unlockCost:400,
+    attr:'humanoid', affinity:'undead'
   },
   electricshot: {
     n:'エレキショット', e:'🌩️', cost:60, hp:90, dmg:30, spd:30, rng:120, ar:1.2, area:5,
     type:'ground', targets:'both', cd:6.5, size:1.0, rew:1, zone:'own', unlockCost:400,
+    attr:'construct', affinity:'machine',
     skills: [{ trigger:'onHit', effect:'thunder' }]
   },
   wolf: {
     n:'ウルフ', e:'🐺', cost:20, hp:60, dmg:20, spd:80, rng:50, ar:0.6,
     type:'ground', targets:'ground', cd:1.0, size:0.9, rew:2, zone:'own', unlockCost:200,
+    attr:'beast', affinity:null
   },
   wyvern: {
     n:'ワイバーン', e:'🦇', cost:100, hp:400, dmg:50, spd:50, rng:110, ar:1.5,
     type:'air', targets:'base', cd:10.0, size:1.4, rew:3, zone:'own', unlockCost:400,
+    attr:'beast', affinity:'humanoid'
   },
   cannoner: {
     n:'キャノン', e:'💣', cost:50, hp:180, dmg:50, spd:30, rng:130, ar:2.0, area:50,
-    type:'ground', targets:'ground', cd:5.0, size:1.2, rew:1, zone:'own', unlockCost:500, 
+    type:'ground', targets:'ground', cd:5.0, size:1.2, rew:1, zone:'own', unlockCost:500,
+    attr:'construct', affinity:'undead'
   },
   dragon: {
     n:'ドラゴン', e:'🐉', cost:100, hp:250, dmg:80, spd:30, rng:100, ar:1.5, area:40,
     type:'air', targets:'both', cd:10.0, size:1.3, rew:1, zone:'own', unlockCost:700,
-    // 攻撃で凍結
+    attr:'beast', affinity:'machine',
     skills: [{ trigger:'onHit', effect:'freeze' }]
   },
   bahamut: {
     n:'バハムート', e:'🐲', cost:500, hp:1000, dmg:300, spd:8, rng:100, ar:5.0, area:80,
     type:'ground', targets:'both', cd:30.0, size:2.0, rew:1, zone:'own', unlockCost:1000,
+    attr:'beast', affinity:null
   },
   fireball: {
     n:'火炎弾', e:'🔥', cost:50, type:'spell', effect:'damage', dmg:80, area:70, cd:8, unlockCost:300
@@ -131,6 +150,8 @@ function mkUnit(defId, team, x, y, d) {
     targets : d.targets,
     isBase  : d.isBase || false,
     size    : d.size   || 1.0,
+    attr    : d.attr   || null,       // 属性（特攻を受ける側）
+    affinity: d.affinity || null,     // 特攻対象属性
     // スキル（配列参照をコピー。null でも動作する）
     skills  : d.skills ? d.skills.slice() : null,
     x: x, y: y,
@@ -141,12 +162,12 @@ function mkUnit(defId, team, x, y, d) {
     swTimer : 0,
     currentTarget: null,
     // 状態異常フィールド
-    baseSPD     : d.spd,   // スロウ計算用の基礎速度
+    baseSPD     : d.spd,
     slowStacks  : 0,
     slowTimer   : 0,
     poisonTimer : 0,
     poisonDmg   : 0,
     poisonAccum : 0,
-    hasSplit    : false    // 分裂済みフラグ
+    hasSplit    : false
   };
 }

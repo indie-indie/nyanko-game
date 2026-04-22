@@ -140,7 +140,8 @@ function spawnEnemy(g, defId) {
     n:d.n, e:d.e, hp:Math.round(d.hp*mult), dmg:Math.round(d.dmg*mult),
     spd:d.spd, rng:d.rng, ar:d.ar, type:d.type, targets:d.targets,
     size:d.size, area:d.area||0, heal:d.heal||0, rew:d.rew||1,
-    skills: d.skills ? d.skills.slice() : null  // 【バグ修正】スキルを必ず引き継ぐ
+    skills: d.skills ? d.skills.slice() : null,  // 【バグ修正】スキルを必ず引き継ぐ
+    attr: d.attr || null                          // 属性を引き継ぐ
   };
   var margin = 28;
   var x = margin + Math.random() * (W - margin * 2);

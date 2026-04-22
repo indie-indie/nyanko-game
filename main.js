@@ -5,14 +5,18 @@ var mouseX = -1, mouseY = -1;
 var canvas, cx;
 
 // ── 画像キャッシュ ─────────────────────────────────────
+// 【バグ修正】拡張子なしパスは .png を自動付与して読み込む
 var IMG_CACHE = {};
 function getImg(src) {
-  if (!IMG_CACHE[src]) {
+  if (!src) return null;
+  // パスに拡張子がなければ .png を付与
+  var resolved = /\.[a-zA-Z0-9]+$/.test(src) ? src : src + '.png';
+  if (!IMG_CACHE[resolved]) {
     var img = new Image();
-    img.src = src;
-    IMG_CACHE[src] = img;
+    img.src = resolved;
+    IMG_CACHE[resolved] = img;
   }
-  return IMG_CACHE[src];
+  return IMG_CACHE[resolved];
 }
 
 // ── 配置ゾーン Y 範囲 ─────────────────────────────────
@@ -221,6 +225,16 @@ function findTarget(u) {
 // hitUnit に attacker を追加（スキル onDeath 等で使用）
 function hitUnit(tgt, amt, attacker) {
   if (!tgt || tgt.dead) return;
+  // 特攻ボーナス：攻撃者の affinity が対象の attr に一致すればダメージ倍増
+  if (attacker && attacker.affinity && tgt.attr && attacker.affinity === tgt.attr) {
+    amt = Math.round(amt * AFFINITY_BONUS);
+    // 特攻エフェクト（金色テキスト）
+    parts.push({
+      type:'text', text:'特攻!', col:'#fbbf24',
+      x: tgt.x, y: (tgt.type === 'air' ? tgt.y - 30 : tgt.y - 22),
+      vx: 0, vy: -1.2, life: 35, max: 35, r: 0
+    });
+  }
   tgt.hp -= amt;
   tgt.flash = 8;
   if (tgt.hp <= 0) {
@@ -610,8 +624,6 @@ function drawUnit(u) {
 
   if(u.type==='air'){ cx.fillStyle='#93c5fd'; cx.font='8px sans-serif'; cx.textAlign='center'; cx.textBaseline='middle'; cx.fillText('✈',u.x,drawY+Math.round(17*u.size)); }
   if(u.isBase){ cx.strokeStyle='#fbbf24'; cx.lineWidth=1.5; cx.globalAlpha=0.6; cx.beginPath(); cx.arc(u.x,drawY,Math.max(16,14*u.size),0,Math.PI*2); cx.stroke(); cx.globalAlpha=1; }
-  cx.fillStyle=u.team==='player'?'#60a5fa':'#f87171';
-  cx.beginPath(); cx.arc(u.x,u.y+Math.round(19*u.size),2.5,0,Math.PI*2); cx.fill();
 }
 
 function render() {
