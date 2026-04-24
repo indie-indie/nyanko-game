@@ -32,9 +32,6 @@ function startGame(stageConfig) {
   uid_  = 0;
   parts = [];
 
-  spawnedEmergency50 = false;
-  spawnedEmergency20 = false;
-
   var stage     = stageConfig || STAGES_CONFIG[0];
   var base      = SAVE.baseLevels || {};
   var initRegen = 5    + (base.regen       || 0) * 0.5;
@@ -256,6 +253,7 @@ function hitUnit(tgt, amt, attacker) {
   }
 }
 
+// hitBase — side:'player'|'enemy' でどちらの拠点を攻撃するか指定
 function hitBase(side, amt) {
   if (side === 'enemy') {
     g.eb.hp = Math.max(0, g.eb.hp - amt);
@@ -324,10 +322,10 @@ function update(dt) {
       proj.y += proj.vy * dt;
       proj.traveledDist += proj.spd * dt;
 
-      // 【バグ修正】拠点への貫通攻撃：位置が近づいたらダメージ判定
+      // 貫通弾が拠点ダミーに到達したらダメージ（baseSide で判定）
       if (proj.tgt && proj.tgt.isBase) {
         if (Math.hypot(proj.x - proj.tgt.x, proj.y - proj.tgt.y) <= 25) {
-          hitBase(proj.tgt.baseIdx, proj.dmg);
+          hitBase(proj.tgt.baseSide, proj.dmg);
           burst(proj.tgt.x, proj.tgt.y, proj.team === 'player' ? '#93c5fd' : '#fca5a5', 4);
           proj.dead = true;
         }
@@ -365,7 +363,8 @@ function update(dt) {
 
     if (pdst <= Math.max(pmv, hitThresh)) {
       if (proj.tgt.isBase) {
-        hitBase(proj.tgt.baseIdx, proj.dmg);
+        // baseSide でどちらの拠点を攻撃するか判定
+        hitBase(proj.tgt.baseSide, proj.dmg);
         if (proj.area) {
           burst(proj.tgt.x, proj.tgt.y, '#f97316', 5);
           for (var pk = 0; pk < g.units.length; pk++) {
@@ -445,7 +444,8 @@ function update(dt) {
       }
     }
 
-    var baseIdx    = u.team === 'player' ? 'enemy' : 'player';
+    // baseSide：自分の進行方向にある相手拠点を示す文字列 ('enemy'|'player')
+    var baseSide   = u.team === 'player' ? 'enemy' : 'player';
     var tBaseX     = W / 2;
     var tBaseY     = u.team === 'player' ? EBY : PBY;
     var distToBase = Math.hypot(tBaseX - u.x, tBaseY - u.y);
@@ -456,13 +456,14 @@ function update(dt) {
       if (u.cd <= 0) {
         u.cd = u.ar;
         if (u.rng > 55) {
-          var dummyTgt = { x:tBaseX, y:tBaseY, dead:false, isBase:true, baseIdx:baseIdx, size:1 };
+          // 拠点攻撃用ダミーターゲット（baseSide = どちらの拠点か）
+          var dummyTgt = { x:tBaseX, y:tBaseY, dead:false, isBase:true, baseSide:baseSide, size:1 };
           var proj = buildProjectile(u, dummyTgt, u.area);
           proj.spd = 350;
           g.projectiles.push(proj);
           triggerSkill('onAttack', u, null, g, parts);
         } else {
-          hitBase(baseIdx, u.dmg);
+          hitBase(baseSide, u.dmg);
         }
       }
       continue;
@@ -781,6 +782,7 @@ function render() {
 }
 
 // ── Utils ─────────────────────────────────────────────
+// onCd — ユニットがクールダウン中か判定（ui.js でも共有）
 function onCd(id) { return (g.unitCDs[id] || 0) > 0.05; }
 
 function loop(ts) {

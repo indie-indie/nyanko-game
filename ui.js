@@ -5,16 +5,16 @@ var deckBuilt = false;
 // ── Tips（敗北時に表示）────────────────────────────
 var BATTLE_TIPS = [
   'コスト低めのユニットを複数展開して数で押し切ろう！',
-  'アーチャーやスナイパーは飛行ユニットにも対応できる。',
-  'ゴーレムで前線を固めてから後ろに射程ユニットを置くと強い。',
+  'テコやジロは飛行ユニットにも対応できる。',
+  'ノーで前線を固めてから後ろに射程ユニットを置くと強い。',
   'スペル「火炎弾」で密集した敵をまとめて一掃できる。',
   'ゴールド上限をアップすると大型ユニットが出しやすくなる。',
-  'ウルフは速度が高く、前線を素早く突破できる。',
+  'ムクは速度が高く、前線を素早く突破できる。',
   '拠点強化でHP・攻撃力を底上げしておこう！',
-  'アサシンは全域配置可能。敵の後方に奇襲をかけよう。',
+  'ワルは全域配置可能。敵の後方に奇襲をかけよう。',
   'フリーズスペルで強敵を一時停止できる。',
   '敵の飛行ユニットには「両方」ターゲットのユニットで対抗しよう。',
-  'ゴーレムは isBase 属性持ち。敵の突進役もゴーレムを狙う！',
+  'ノーは isBase 属性持ち。敵の突進役もノーを狙う！',
 ];
 
 // ── カードアイコン HTML（画像 or 絵文字）─────────────
@@ -79,16 +79,16 @@ function updateDeckUI() {
     if (!el) return;
     var d      = PLAYER_UNITS[id];
     var cdLeft = g.unitCDs[id] || 0;
-    var onCd   = cdLeft > 0.05;
+    var onCdNow = cdLeft > 0.05;
     var noGold = g.gold < d.cost;
     var sel    = g.selectedUnit === id;
 
     el.classList.toggle('selected', sel);
-    el.classList.toggle('dim',  !sel && !onCd && noGold);
-    el.classList.toggle('oncd', onCd);
+    el.classList.toggle('dim',  !sel && !onCdNow && noGold);
+    el.classList.toggle('oncd', onCdNow);
 
     var cdov = el.querySelector('.cdov');
-    if (onCd) {
+    if (onCdNow) {
       cdov.style.display = 'flex';
       cdov.textContent   = cdLeft.toFixed(1);
     } else {
@@ -114,6 +114,7 @@ function handleCardClick(id) {
   if (!g || !g.on) return;
   var d      = PLAYER_UNITS[id];
   var cdLeft = g.unitCDs[id] || 0;
+  // onCd は main.js で定義（グローバル共有）
   if (onCd(id) || g.gold < d.cost) return;
 
   g.selectedUnit = (g.selectedUnit === id) ? null : id;
@@ -121,8 +122,6 @@ function handleCardClick(id) {
     ? d.e + ' ' + d.n + ' を配置する場所をタップ'
     : '';
 }
-
-function onCd(id) { return (g.unitCDs[id] || 0) > 0.05; }
 
 // ── Win/Lose overlay ─────────────────────────────────
 function renderOverlay(win, reward) {
